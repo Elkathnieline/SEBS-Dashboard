@@ -17,11 +17,14 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<Root />} errorElement={<ErrorPage />}>
+      <Route index element={<Login />} />
+      <Route path="dashboard" element={<ProtectedRoute requireAdmin />}>
+        <Route index element={<Dashboard />} />
+      </Route>
+      <Route path="settings" element={<ProtectedRoute requireAdmin />}>
+        <Route index element={<Settings />} />
+      </Route>
       <Route path="*" element={<ErrorPage />} />
-      <ProtectedRoute requireAdmin={true}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="settings" element={<Settings />} />
-      </ProtectedRoute>
     </Route>
   )
 );

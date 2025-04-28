@@ -1,38 +1,55 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+// src/context/AuthContext.jsx
+import { createContext, useState, useEffect, useContext } from "react";
+import jwt_decode from "jwt-decode";
+import { login as apiLogin, logout as apiLogout, refreshToken } from "../services/authService";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    
-    // Check for saved auth state on mount
-    useEffect(() => {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-            setUser(JSON.parse(savedUser));
-        }
-    }, []);
+  const [user, setUser]         = useState(null);
+  const [accessToken, setToken] = useState(null);
 
-    const login = (userData) => {
-        // Store in state and localStorage
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-    };
+  // on mount, try to get a fresh access token
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await refreshToken();
+        applyToken(token);
+      } catch {
+        applyToken(null);
+      }
+    })();
+  }, []);
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('user');
-    };
+  function applyToken(token) {
+    window.accessToken = token;
+    setToken(token);
+    if (token) {
+      const { exp, ...payload } = jwt_decode(token);
+      setUser(payload);
+    } else {
+      setUser(null);
+    }
+  }
 
-    const isAdmin = () => {
-        return user && user.role === 'admin';
-    };
+  async function login(username, password) {
+    const { accessToken: token, user: userData } = await apiLogin(username, password);
+    applyToken(token);
+    return userData;
+  }
 
-    return (
-        <AuthContext.Provider value={{ user, login, logout, isAdmin }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  async function logout() {
+    await apiLogout();
+    applyToken(null);
+  }
+
+  const isAdmin = () => user?.role === "admin";
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, isAdmin }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthContext);
