@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import {
   createBrowserRouter,
   createRoutesFromElements,
+  RouterProvider,
 } from "react-router-dom";
 import "./App.css";
 import ErrorPage from "./ErrorPage.jsx";
@@ -22,8 +23,8 @@ const router = createBrowserRouter(
   )
 );
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <RouterProvider router={router} />
+  </React.StrictMode>
 );
