@@ -5,13 +5,15 @@ import Footer from "../components/Footer.jsx";
 
 export default function Root() {
   return (
-    <>
-      <div className="h-screen flex flex-col items-center justify-center">
-        <Header />
+    <div className="h-screen flex flex-col">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <Outlet />
-        <Footer />
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
       </div>
-    </>
+      <Footer />
+    </div>
   );
 }
