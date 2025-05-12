@@ -1,7 +1,10 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import useAuth from "../Hooks/UseAuth";
 
-export default function ProtectedRoute({ requireAdmin = false, redirectTo = "/" }) {
+export default function ProtectedRoute({
+  requireAdmin = false,
+  redirectTo = "/",
+}) {
   const { user, isAdmin } = useAuth();
 
   if (!user) {

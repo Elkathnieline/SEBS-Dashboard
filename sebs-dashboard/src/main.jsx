@@ -11,18 +11,18 @@ import { AuthProvider } from "./context/AuthContext";
 import "./App.css";
 import ErrorPage from "./ErrorPage.jsx";
 
-import Root from "./routes/root.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import Root from "./Routes/Root.jsx";
+import RequireAuth from "./Components/requireAuth.jsx";
+import Login from "./Routes/Login.jsx";
+import Dashboard from "./Routes/Dashboard.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<Root />} errorElement={<ErrorPage />}>
       <Route index element={<Login />} />
-      <Route path="dashboard" element={<ProtectedRoute requireAdmin />}>
-        <Route index element={<Dashboard />} />
-      </Route>
-      <Route path="settings" element={<ProtectedRoute requireAdmin />}>
-        <Route index element={<Settings />} />
+      <Route element={<RequireAuth />}>
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<ErrorPage />} />
     </Route>
