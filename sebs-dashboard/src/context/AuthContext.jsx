@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useState, useEffect, useContext } from "react";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { login as apiLogin, logout as apiLogout, refreshToken } from "../services/AuthServices";
 
 const AuthContext = createContext();
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
     setToken(token);
     if (token) {
       sessionStorage.setItem("backend-token", token);
-      const { exp, ...payload } = jwt_decode(token);
+      const { exp, ...payload } = jwtDecode(token);
       setUser(payload);
     } else {
       sessionStorage.removeItem("backend-token");

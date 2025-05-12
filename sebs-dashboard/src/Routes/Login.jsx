@@ -2,18 +2,20 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../Hooks/UseAuth";
+import { login as loginService } from "../services/AuthServices";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError]       = useState();
-  const { login }               = useAuth();
+  const { setAuth }             = useAuth();
   const nav                      = useNavigate();
 
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      await login(username.trim(), password);
+      const data = await loginService(username.trim(), password);
+      setAuth({ user: username.trim(), accessToken: data.accessToken, roles: data.roles });
       nav("/dashboard");
     } catch {
       setError("Invalid credentials");
