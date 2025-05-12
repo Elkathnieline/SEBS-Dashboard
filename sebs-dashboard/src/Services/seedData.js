@@ -1,4 +1,3 @@
-// src/Services/seedData.js
 // This file provides mock data and a seeding function for local testing.
 
 export const mockUsers = [
@@ -23,7 +22,6 @@ export const mockDashboardData = [
   { id: 2, title: "Widget 2", value: 17 },
 ];
 
-// Example seeding function (for a mock backend or localStorage)
 export function seedMockData() {
   localStorage.setItem("mockUsers", JSON.stringify(mockUsers));
   localStorage.setItem("mockDashboardData", JSON.stringify(mockDashboardData));
