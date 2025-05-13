@@ -1,33 +1,28 @@
 // src/context/AuthContext.jsx
 import { createContext, useState, useEffect, useContext } from "react";
-import jwt_decode from "jwt-decode";
-import { login as apiLogin, logout as apiLogout, refreshToken } from "../services/authService";
+import { jwtDecode } from "jwt-decode";
+import { login as apiLogin, logout as apiLogout, refreshToken } from "../services/AuthServices";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser]         = useState(null);
-  const [accessToken, setToken] = useState(null);
+  const [user, setUser] = useState(null);
+  const [accessToken, setToken] = useState(() => sessionStorage.getItem("backend-token"));
 
-  // on mount, try to get a fresh access token
   useEffect(() => {
-    (async () => {
-      try {
-        const token = await refreshToken();
-        applyToken(token);
-      } catch {
-        applyToken(null);
-      }
-    })();
+    // On mount, check for token in sessionStorage
+    const token = sessionStorage.getItem("backend-token");
+    applyToken(token);
   }, []);
 
   function applyToken(token) {
-    window.accessToken = token;
     setToken(token);
     if (token) {
-      const { exp, ...payload } = jwt_decode(token);
+      sessionStorage.setItem("backend-token", token);
+      const { exp, ...payload } = jwtDecode(token);
       setUser(payload);
     } else {
+      sessionStorage.removeItem("backend-token");
       setUser(null);
     }
   }
