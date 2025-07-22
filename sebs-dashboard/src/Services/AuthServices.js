@@ -1,9 +1,9 @@
 // src/services/AuthServices.js
 
-const API_BASE = "/auth";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export async function login(username, password) {
-  const res = await fetch(`${API_BASE}/login`, {
+  const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -19,7 +19,7 @@ export async function login(username, password) {
 }
 
 export async function refreshToken() {
-  const res = await fetch(`${API_BASE}/refresh`, {
+  const res = await fetch(`${API_BASE}/auth/refresh`, {
     method: "GET",
     credentials: "include",
   });
@@ -31,7 +31,7 @@ export async function refreshToken() {
 }
 
 export async function logout() {
-  await fetch(`${API_BASE}/logout`, {
+  await fetch(`${API_BASE}/auth/logout`, {
     method: "POST",
     credentials: "include",
   });

@@ -1,2 +1,74 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+
+@plugin "daisyui/theme" {
+  name: "eventplanner";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  /* Base colors (backgrounds, cards) */
+  --color-base-100: #fff8ee; /* warm cream */
+  --color-base-200: #faf4eb; /* light pink (secondary) */
+  --color-base-300: #fffaf4; /* light beige */
+  --color-base-content: #0f766e; /* dark teal for headings */
+
+  /* Primary (light blue/teal) */
+  --color-primary: #8ec1c2;
+  --color-primary-content: #6e9cf3;
+
+
+  /* Secondary (pink/rose) */
+  --color-secondary: #f7d0d5;
+  --color-secondary-content: #bb8c7d;
+
+  /* Accent (coral/orange) */
+  --color-accent: #fb7185;
+  --color-accent-content: #7dd3fc; /* light teal */
+
+  /* Neutral */
+  --color-neutral: #fdf6f0;
+  --color-neutral-content: #17414d;
+
+  /* Info, Success, Warning, Error */
+  --color-info: #7dd3fc;
+  --color-info-content: #17414d;
+  --color-success: #67e8f9;
+  --color-success-content: #17414d;
+  --color-warning: #f97316;
+  --color-warning-content: #17414d;
+  --color-error: #fb7185;
+  --color-error-content: #fff;
+
+  /* border radius */
+  --radius-selector: 1rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+
+  /* base sizes */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  /* border size */
+  --border: 1px;
+
+  /* effects */
+  --depth: 1;
+  --noise: 0;
+
+}
+
+/* Add to App.css if inline styles don't work */
+.glass-card {
+  background: rgba(255, 248, 238, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-input {
+  background: rgba(255, 248, 238, 0.6) !important;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
