@@ -112,6 +112,7 @@ export default function Login() {
             <div className="form-control mt-8">
               <button 
                 type="submit" 
+                 onClick={() => navigate("/dashboard")}
                 className="btn btn-primary w-full text-white font-semibold hover:bg-primary-focus transition-colors rounded-3xl shadow-lg"
               >
                 Sign in
