@@ -23,14 +23,13 @@ const router = createBrowserRouter(
     <>
       {/* Standalone login route without Root layout */}
       <Route path="/login" element={<Login />} />
-      
+
       {/* Main app routes with Root layout */}
       <Route path="/" element={<Root />} errorElement={<ErrorPage />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route element={<RequireAuth />}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
+
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="*" element={<ErrorPage />} />
       </Route>
     </>
