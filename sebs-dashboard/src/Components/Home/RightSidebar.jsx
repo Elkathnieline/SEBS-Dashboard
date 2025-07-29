@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Clock, X, ChevronRight, Upload, Calendar as CalendarIcon, User } from 'lucide-react';
+import { Check, Clock, X, ChevronRight, Upload } from 'lucide-react';
 
 export default function RightSidebar() {
   const [bookingStats, setBookingStats] = useState({
@@ -7,29 +7,11 @@ export default function RightSidebar() {
     pending: 12,
     declined: 3
   });
-  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Sample meetings data with simplified details
-  const sampleMeetings = [
-    {
-      id: 1,
-      clientName: 'Client Name',
-      time: '11:00',
-      date: '2024-12-15'
-    },
-    {
-      id: 2,
-      clientName: 'Client Name',
-      time: '13:00',
-      date: '2024-12-15'
-    }
-  ];
-
   useEffect(() => {
     fetchBookingStats();
-    fetchUpcomingMeetings();
   }, []);
 
   const fetchBookingStats = async () => {
@@ -59,37 +41,8 @@ export default function RightSidebar() {
     }
   };
 
-  const fetchUpcomingMeetings = async () => {
-    try {
-      const token = sessionStorage.getItem("backend-token");
-      if (!token) {
-        setUpcomingMeetings(sampleMeetings);
-        return;
-      }
-
-      const response = await fetch('http://localhost:8000/api/upcoming-meetings', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch meetings');
-      
-      const data = await response.json();
-      setUpcomingMeetings(data);
-    } catch (err) {
-      console.error('Error fetching meetings:', err);
-      setUpcomingMeetings(sampleMeetings); // Fallback to sample data
-    }
-  };
-
   const handleViewAllBookings = () => {
     console.log('View All Bookings clicked - navigation not yet implemented');
-    // Navigation will be implemented later
-  };
-
-  const handleMeetingClick = (meetingId) => {
-    console.log('Meeting clicked:', meetingId, '- navigation not yet implemented');
     // Navigation will be implemented later
   };
 
@@ -108,14 +61,6 @@ export default function RightSidebar() {
     };
     
     input.click();
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    });
   };
 
   return (
@@ -178,49 +123,6 @@ export default function RightSidebar() {
               </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Upcoming Meetings Section */}
-      <div className="card bg-base-100 shadow-lg rounded-2xl">
-        <div className="card-body p-6">
-          <h2 className="card-title text-xl font-bold text-base-content mb-4">
-            Upcoming Meetings
-          </h2>
-          
-          <div className="space-y-3">
-            {upcomingMeetings.length > 0 ? (
-              upcomingMeetings.map((meeting) => (
-                <div 
-                  key={meeting.id}
-                  onClick={() => handleMeetingClick(meeting.id)}
-                  className="p-4 bg-base-50 rounded-xl border border-base-200 cursor-pointer hover:bg-base-100 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <User size={16} className="text-base-content/60" />
-                        <h3 className="font-semibold text-base-content">{meeting.clientName}</h3>
-                      </div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <CalendarIcon size={16} className="text-base-content/60" />
-                        <p className="text-lg font-bold text-base-content">{meeting.time}</p>
-                      </div>
-                      <p className="text-sm text-base-content/60">{formatDate(meeting.date)}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                      <ChevronRight size={16} className="text-primary-content" />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-base-content/60">
-                <CalendarIcon size={32} className="mx-auto mb-2 text-base-content/40" />
-                <p>No upcoming meetings</p>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 

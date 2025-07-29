@@ -4,7 +4,6 @@ import {
   LayoutGrid, 
   BookOpen, 
   BarChart3, 
-  Users, 
   Image, 
   Settings, 
   LogOut,
@@ -52,11 +51,6 @@ export default function Sidebar() {
       label: "Reports"
     },
     {
-      to: "/meetings",
-      icon: Users,
-      label: "Meetings"
-    },
-    {
       to: "/gallery",
       icon: Image,
       label: "Gallery"
@@ -72,18 +66,18 @@ export default function Sidebar() {
     }
   ];
 
-  const SidebarContent = () => (
-    <>
+  const SidebarContent = ({ isMobile = false }) => (
+    <div className="h-full flex flex-col">
       {/* Logo Section */}
-      <div className="p-6">
+      <div className="p-6 flex-shrink-0">
         <NavLink to="/" className="block" onClick={closeMobileMenu}>
           <h1 className="text-2xl font-bold text-gray-800">logo</h1>
         </NavLink>
       </div>
 
       {/* Navigation Section */}
-      <nav className="flex-1 px-4 py-6">
-        <ul className="space-y-2">
+      <nav className="flex-1 px-4 py-2 overflow-y-auto">
+        <ul className="space-y-3">
           {navigationItems.map((item) => {
             const IconComponent = item.icon;
             return (
@@ -108,9 +102,9 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* Bottom Section */}
-      <div className="px-4 py-6 border-t border-gray-500">
-        <ul className="space-y-2">
+      {/* Bottom Section - Settings and Logout */}
+      <div className="px-4 py-4 border-t border-gray-500 flex-shrink-0 mt-auto">
+        <ul className="space-y-3">
           {bottomItems.map((item) => {
             const IconComponent = item.icon;
             return (
@@ -145,7 +139,7 @@ export default function Sidebar() {
           </li>
         </ul>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -160,7 +154,10 @@ export default function Sidebar() {
       </button>
 
       {/* Desktop Sidebar */}
-      <aside className="w-64 h-screen flex flex-col hidden lg:flex" style={{ backgroundColor: '#9DB4B8' }}>
+      <aside 
+        className="w-64 flex flex-col hidden lg:flex" 
+        style={{ backgroundColor: '#9DB4B8', height: '100vh', minHeight: '100vh' }}
+      >
         <SidebarContent />
       </aside>
 
@@ -172,9 +169,15 @@ export default function Sidebar() {
             onClick={closeMobileMenu}
           ></div>
           
-          <aside className="w-64 h-screen flex flex-col fixed left-0 top-0 transform transition-transform duration-300 ease-in-out" style={{ backgroundColor: '#9DB4B8' }}>
-            <SidebarContent />
-          </aside>
+          {/* Centered Mobile Sidebar */}
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <aside 
+              className="w-80 max-w-full h-[90vh] max-h-[600px] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-300 ease-in-out" 
+              style={{ backgroundColor: '#9DB4B8' }}
+            >
+              <SidebarContent isMobile={true} />
+            </aside>
+          </div>
         </div>
       )}
 
