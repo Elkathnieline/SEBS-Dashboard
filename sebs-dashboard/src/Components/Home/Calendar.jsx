@@ -140,7 +140,7 @@ export default function Calendar() {
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
       days.push(
-        <div key={`empty-${i}`} className="h-20 border border-gray-200"></div>
+        <div key={`empty-${i}`} className="h-14 border border-gray-200 bg-white"></div>
       );
     }
     
@@ -152,35 +152,45 @@ export default function Calendar() {
       days.push(
         <div 
           key={day} 
-          className="h-20 border border-gray-200 p-1 relative cursor-pointer hover:bg-gray-50 transition-colors"
+          className="h-14 border border-gray-200 p-1 relative cursor-pointer hover:bg-gray-50 transition-colors bg-white overflow-hidden"
           onClick={() => handleDayClick(day)}
         >
-          <span className="text-sm font-medium text-gray-700">{day}</span>
-          <div className="mt-1">
+          <span className="text-xs font-medium text-gray-700">{day}</span>
+          <div className="mt-1 overflow-hidden">
             {/* Regular single-cell events */}
-            {dayEvents.map(event => (
+            {dayEvents.slice(0, 1).map(event => (
               <div
                 key={event.id}
-                className={`${event.color} rounded-md p-1 mb-1 text-xs cursor-pointer hover:opacity-90 transition-opacity`}
+                className={`${event.color} rounded text-xs cursor-pointer hover:opacity-90 transition-opacity p-1`}
+                style={{ fontSize: '9px', lineHeight: '1' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleEventClick(event);
                 }}
               >
-                <div className="font-medium">{event.client}</div>
-                <div className="opacity-90">{event.package}</div>
-                <div className="opacity-90">{event.time}</div>
+                <div className="font-medium truncate">{event.client}</div>
+                <div className="opacity-90 truncate">{event.package}</div>
+                <div className="opacity-90 truncate">{event.time}</div>
               </div>
             ))}
+            
+            {/* Show +more indicator if there are more events */}
+            {dayEvents.length > 1 && (
+              <div className="text-xs text-gray-500 mt-1">
+                +{dayEvents.length - 1} more
+              </div>
+            )}
             
             {/* Spanned events */}
             {spannedEvent && (
               <div
-                className={`${spannedEvent.color} ${spannedEvent.isStart ? 'rounded-l-md' : ''} ${spannedEvent.isEnd ? 'rounded-r-md' : ''} p-1 mb-1 text-xs cursor-pointer hover:opacity-90 transition-opacity absolute left-1 right-0 z-10`}
+                className={`${spannedEvent.color} ${spannedEvent.isStart ? 'rounded-l' : ''} ${spannedEvent.isEnd ? 'rounded-r' : ''} text-xs cursor-pointer hover:opacity-90 transition-opacity absolute left-1 right-0 z-10 p-1 overflow-hidden`}
                 style={{
                   left: spannedEvent.isStart ? '4px' : '0px',
                   right: spannedEvent.isEnd ? '4px' : '-1px',
-                  top: '24px'
+                  top: '14px',
+                  fontSize: '9px',
+                  lineHeight: '1'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -189,9 +199,9 @@ export default function Calendar() {
               >
                 {spannedEvent.isStart && (
                   <>
-                    <div className="font-medium">{spannedEvent.client}</div>
-                    <div className="opacity-90">{spannedEvent.package}</div>
-                    <div className="opacity-90">{spannedEvent.time}</div>
+                    <div className="font-medium truncate">{spannedEvent.client}</div>
+                    <div className="opacity-90 truncate">{spannedEvent.package}</div>
+                    <div className="opacity-90 truncate">{spannedEvent.time}</div>
                   </>
                 )}
               </div>
@@ -205,8 +215,8 @@ export default function Calendar() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 w-full">
-      <div className="p-4">
+    <div className="bg-white rounded-lg border border-gray-200 w-full h-full flex flex-col overflow-hidden">
+      <div className="p-4 flex-shrink-0">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold text-gray-800">
@@ -238,32 +248,35 @@ export default function Calendar() {
           </div>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center h-40">
-            <span className="loading loading-spinner loading-md"></span>
-          </div>
-        )}
-
         {/* Error State */}
         {error && (
           <div className="alert alert-warning mb-4">
             <span>Using sample data: {error}</span>
           </div>
         )}
+      </div>
 
-        {/* Calendar Grid */}
-        {!loading && (
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <div className="grid grid-cols-7">
+      {/* Calendar Content */}
+      <div className="flex-1 min-h-0 px-4 pb-4">
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center items-center h-full">
+            <span className="loading loading-spinner loading-md"></span>
+          </div>
+        ) : (
+          /* Calendar Grid */
+          <div className="border border-gray-200 rounded-lg overflow-hidden h-full flex flex-col">
+            <div className="grid grid-cols-7 flex-shrink-0">
               {/* Day headers with numbers */}
               {['1', '2', '3', '4', '5', '6', '7'].map((day, index) => (
-                <div key={day} className="p-2 text-center text-sm font-medium text-gray-600 bg-gray-50 border-r border-gray-200 last:border-r-0">
+                <div key={day} className="p-2 text-center text-xs font-medium text-gray-600 bg-gray-50 border-r border-gray-200 last:border-r-0 h-8">
                   {day}
                 </div>
               ))}
-              
-              {/* Calendar days */}
+            </div>
+            
+            {/* Calendar days grid */}
+            <div className="grid grid-cols-7 flex-1">
               {renderCalendarDays()}
             </div>
           </div>

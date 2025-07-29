@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 
 export default function BookingChart() {
   const [chartData, setChartData] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('2024');
+  const [selectedYear, setSelectedYear] = useState('2025');
   const [loading, setLoading] = useState(false);
 
   // Sample data matching the screenshot
@@ -57,44 +57,44 @@ export default function BookingChart() {
   const maxValue = Math.max(...chartData.flatMap(item => [item.green, item.purple]));
 
   return (
-    <div className="card bg-white shadow-sm border border-gray-200 rounded-2xl h-full">
-      <div className="card-body p-6">
-        <div className="flex items-center justify-between mb-6">
+    <div className="card bg-white shadow-sm border border-gray-200 rounded-2xl" style={{ height: '252px' }}>
+      <div className="card-body p-4 flex flex-col h-full">
+        <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-800">Booking Chart</h3>
           <div className="dropdown dropdown-end">
             <button tabIndex={0} className="btn btn-sm btn-ghost gap-2">
               Year <ChevronDown size={16} />
             </button>
             <ul tabIndex={0} className="dropdown-content menu bg-white rounded-box z-[1] w-32 p-2 shadow border">
-              <li><a onClick={() => setSelectedYear('2024')}>2024</a></li>
-              <li><a onClick={() => setSelectedYear('2023')}>2023</a></li>
-              <li><a onClick={() => setSelectedYear('2022')}>2022</a></li>
+              <li><a onClick={() => setSelectedYear('2025')}>2025</a></li>
+              <li><a onClick={() => setSelectedYear('2026')}>2026</a></li>
+              <li><a onClick={() => setSelectedYear('2027')}>2027</a></li>
             </ul>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center h-64">
+          <div className="flex justify-center items-center flex-1">
             <span className="loading loading-spinner loading-md"></span>
           </div>
         ) : (
-          <div className="h-64">
-            <div className="flex items-end justify-between h-full gap-2">
+          <div className="flex-1 min-h-0">
+            <div className="flex items-end justify-between h-full gap-1">
               {chartData.map((item, index) => (
                 <div key={index} className="flex flex-col items-center flex-1">
-                  <div className="flex items-end gap-1 h-48 mb-2">
+                  <div className="flex items-end gap-0.5 h-24 mb-1">
                     <div 
-                      className="bg-green-400 rounded-t w-3"
+                      className="bg-green-400 rounded-t w-2"
                       style={{ 
                         height: `${(item.green / maxValue) * 100}%`,
-                        minHeight: '8px'
+                        minHeight: '4px'
                       }}
                     ></div>
                     <div 
-                      className="bg-purple-400 rounded-t w-3"
+                      className="bg-purple-400 rounded-t w-2"
                       style={{ 
                         height: `${(item.purple / maxValue) * 100}%`,
-                        minHeight: '8px'
+                        minHeight: '4px'
                       }}
                     ></div>
                   </div>
