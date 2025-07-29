@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import StatsCard from "../Components/Home/StatsCard";
+import BookingChart from "../Components/Home/BookingChart";
+import Calendar from "../Components/Home/Calendar";
+import RightSidebar from "../Components/Home/RightSidebar";
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -21,11 +25,45 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-4xl font-bold">Dashboard</h1>
-      <p className="mt-4 text-lg">Welcome to the dashboard!</p>
-      {error && <p className="text-red-500 mt-4">{error}</p>}
-      {data && <pre className="mt-4 bg-gray-100 p-4 rounded">{JSON.stringify(data, null, 2)}</pre>}
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Main Content Layout */}
+        <div className="flex gap-6">
+          {/* Left Content */}
+          <div className="flex-1">
+            {/* Top Row - Stats Cards and Booking Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              {/* Stats Cards Column */}
+              <div className="space-y-6">
+                <StatsCard type="bookings" value={182} />
+                <StatsCard type="visits" value={400} />
+              </div>
+              
+              {/* Booking Chart - Takes 2 columns */}
+              <div className="lg:col-span-2">
+                <BookingChart />
+              </div>
+            </div>
+
+            {/* Calendar Component */}
+            <div>
+              <Calendar />
+            </div>
+
+            {/* Debug Info */}
+            {error && (
+              <div className="alert alert-error shadow-lg mt-6">
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar - Hidden on mobile, shown on xl screens and up */}
+          <div className="hidden xl:block w-80">
+            <RightSidebar />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
