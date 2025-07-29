@@ -4,10 +4,10 @@ import Sidebar from "../components/Sidebar.jsx";
 
 export default function Root() {
   return (
-    <div className="h-screen flex flex-col">
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+    <div className="h-screen flex overflow-hidden ">
+      <Sidebar />
+      <div className="flex flex-1 flex-col">
+        <Header />
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
