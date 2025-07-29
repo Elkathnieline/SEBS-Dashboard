@@ -41,7 +41,7 @@ export default function Sidebar() {
       label: "Home"
     },
     {
-      to: "/booking-management",
+      to: "/management",
       icon: BookOpen,
       label: "Booking Management"
     },
