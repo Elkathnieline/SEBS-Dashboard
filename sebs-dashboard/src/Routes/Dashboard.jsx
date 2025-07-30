@@ -3,10 +3,12 @@ import StatsCard from "../Components/Home/StatsCard";
 import BookingChart from "../Components/Home/BookingChart";
 import Calendar from "../Components/Home/Calendar";
 import RightSidebar from "../Components/Home/RightSidebar";
+import { useTheme } from "../Contexts/ThemeContext.jsx";
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const { isDarkTheme } = useTheme();
 
   useEffect(() => {
     const token = sessionStorage.getItem("backend-token");
@@ -25,7 +27,9 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="h-full bg-gray-50 p-6 overflow-hidden">
+    <div className={`h-full p-6 overflow-hidden transition-colors duration-300 ${
+      isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
+    }`}>
       <div className="h-full flex flex-col max-w-7xl mx-auto">
         {/* Main Content Layout */}
         <div className="flex gap-6 flex-1 min-h-0">
@@ -54,7 +58,11 @@ export default function Dashboard() {
 
             {/* Debug Info */}
             {error && (
-              <div className="alert alert-error shadow-lg mt-4 flex-shrink-0">
+              <div className={`alert shadow-lg mt-4 flex-shrink-0 ${
+                isDarkTheme 
+                  ? 'bg-red-900 border-red-700 text-red-100' 
+                  : 'alert-error'
+              }`}>
                 <span>{error}</span>
               </div>
             )}
