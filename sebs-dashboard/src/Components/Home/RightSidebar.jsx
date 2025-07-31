@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Check, Clock, X, ChevronRight, Upload } from 'lucide-react';
+import { NavLink } from "react-router-dom";
 
 export default function RightSidebar() {
   const [bookingStats, setBookingStats] = useState({
-    accepted: 28,
-    pending: 12,
-    declined: 3
+    accepted: 0,
+    pending: 0,
+    declined: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -23,7 +24,8 @@ export default function RightSidebar() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/booking-stats', {
+      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const response = await fetch(`${apiUrl}/api/Analytics/booking-stats`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -32,19 +34,21 @@ export default function RightSidebar() {
       if (!response.ok) throw new Error('Failed to fetch booking stats');
       
       const data = await response.json();
-      setBookingStats(data);
+      console.log('Booking stats fetched:', data);
+      setBookingStats({
+        accepted: data.accepted ?? 0,
+        pending: data.pending ?? 0,
+        declined: data.declined ?? 0,
+      });
     } catch (err) {
       setError(err.message);
+      setBookingStats({ accepted: 0, pending: 0, declined: 0 });
       console.error('Error fetching booking stats:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewAllBookings = () => {
-    console.log('View All Bookings clicked - navigation not yet implemented');
-    // Navigation will be implemented later
-  };
 
   const handleGalleryUpload = () => {
     const input = document.createElement('input');
@@ -114,13 +118,13 @@ export default function RightSidebar() {
               </div>
 
               {/* View All Bookings Button */}
-              <button 
-                onClick={handleViewAllBookings}
-                className="btn btn-primary w-full mt-4 gap-2"
+              <NavLink
+                to="/management"
+                className="btn btn-primary w-full mt-4 gap-2 flex items-center justify-center"
               >
                 View All Bookings
                 <ChevronRight size={16} />
-              </button>
+              </NavLink>
             </div>
           )}
         </div>

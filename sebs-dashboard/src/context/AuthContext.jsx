@@ -28,9 +28,11 @@ export function AuthProvider({ children }) {
   }
 
   async function login(username, password) {
-    const { accessToken: token, user: userData } = await apiLogin(username, password);
+    const result = await apiLogin(username, password);
+    const token = result.token;
+    if (!token) throw new Error("No token received");
     applyToken(token);
-    return userData;
+    return true; 
   }
 
   async function logout() {
@@ -38,7 +40,7 @@ export function AuthProvider({ children }) {
     applyToken(null);
   }
 
-  const isAdmin = () => user?.role === "admin";
+  const isAdmin = () => user?.role === "Admin";
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAdmin }}>

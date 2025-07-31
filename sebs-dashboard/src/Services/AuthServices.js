@@ -3,13 +3,12 @@
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export async function login(username, password) {
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const res = await fetch(`${API_BASE}/api/Auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ username, password }),
-    credentials: "include", 
   });
 
   if (!res.ok) {

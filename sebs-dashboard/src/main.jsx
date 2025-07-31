@@ -21,7 +21,6 @@ import Gallery from "./Routes/Gallery.jsx";
 import Management from "./Routes/Management.jsx";
 import Reports from "./Routes/Reports.jsx";
 
-
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -29,15 +28,17 @@ const router = createBrowserRouter(
       <Route path="/login" element={<Login />} />
 
       {/* Main app routes with Root layout */}
-      <Route path="/" element={<Root />} errorElement={<ErrorPage />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route element={<RequireAuth />}>
+        <Route path="/" element={<Root />} errorElement={<ErrorPage />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
 
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="gallery" element={<Gallery />} />
-        <Route path="management" element={<Management />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="*" element={<ErrorPage />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="gallery" element={<Gallery />} />
+          <Route path="management" element={<Management />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="*" element={<ErrorPage />} />
+        </Route>
       </Route>
     </>
   )

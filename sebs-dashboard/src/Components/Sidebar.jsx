@@ -10,17 +10,23 @@ import {
   Menu,
   X
 } from "lucide-react";
+import useAuth from "../Hooks/UseAuth";
 
 export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { logout } = useAuth(); // Use logout from AuthContext
 
   const handleLogout = () => {
     setShowLogoutModal(true);
   };
 
-  const confirmLogout = () => {
-    sessionStorage.removeItem("backend-token");
+  const confirmLogout = async () => {
+    try {
+      await logout(); // Call logout from AuthContext (removes token, updates state)
+    } catch (err) {
+      // Optionally handle error (e.g., show toast)
+    }
     setShowLogoutModal(false);
     setIsMobileMenuOpen(false);
     window.location.href = "/login";

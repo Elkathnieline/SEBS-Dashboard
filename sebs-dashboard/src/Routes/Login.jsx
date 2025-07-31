@@ -10,28 +10,30 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState();
   const [showPassword, setShowPassword] = useState(false);
-  const { login, user } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Redirect to intended page after login, or dashboard by default
   const from = location.state?.from?.pathname || "/dashboard";
 
-  // If user is already logged in, redirect them
   useEffect(() => {
     if (user) {
       navigate(from, { replace: true });
     }
   }, [user, navigate, from]);
 
-  const handleSubmit = async e => {
+  const handleSubmit = e => {
     e.preventDefault();
-    try {
-      await login(username.trim(), password);
-      navigate(from, { replace: true });
-    } catch (err) {
-      setError("Invalid credentials");
-    }
+    setError(null);
+
+    login(username.trim(), password)
+      .then(() => {
+        navigate("/dashboard", { replace: true });
+      })
+      .catch(err => {
+        setError(err?.message === "Login failed" ? "Invalid credentials" : err?.message || "Login failed");
+      });
   };
 
   return (
@@ -40,11 +42,9 @@ export default function Login() {
       <div className="absolute inset-0 z-0">
         <WavePattern />
       </div>
-      
-      {/* Outer Glass Container - Self-closing background element */}
+      {/* Outer Glass Container */}
       <div className="absolute z-10 max-w-md w-full mx-4 h-auto rounded-3xl bg-white/90 opacity-90 shadow-xl border border-white/30 py-80 px-170" />
-
-      {/* Inner Login Form Card - Separate component on top */}
+      {/* Inner Login Form Card */}
       <div className="card relative z-20 max-w-md w-full mx-4 bg-base-300 shadow-xl">
         <div className="card-body p-8 w-full">
           {/* Logo and Title */}
@@ -52,20 +52,18 @@ export default function Login() {
             <h1 className="text-4xl font-bold text-secondary mb-2">logo</h1>
             <h2 className="text-lg font-medium text-black ">Admin Dashboard</h2>
           </div>
-
           {/* Error Message */}
           {error && (
             <div className="alert alert-error mb-4">
               <span className="text-sm">{error}</span>
             </div>
           )}
-
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email/Username Field */}
+            {/* Username Field */}
             <div className="form-control">
               <label className="label pb-2">
-                <span className="label-text text-base-content font-medium">Email</span>
+                <span className="label-text text-base-content font-medium">Username</span>
               </label>
               <input
                 type="text"
@@ -75,7 +73,6 @@ export default function Login() {
                 required
               />
             </div>
-
             {/* Password Field */}
             <div className="form-control">
               <label className="label pb-2">
@@ -93,6 +90,8 @@ export default function Login() {
                   type="button"
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-base-content/60 hover:text-base-content transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff size={20} />
@@ -107,12 +106,10 @@ export default function Login() {
                 </a>
               </label>
             </div>
-
             {/* Submit Button */}
             <div className="form-control mt-8">
-              <button 
-                type="submit" 
-                 onClick={() => navigate("/dashboard")}
+              <button
+                type="submit"
                 className="btn btn-primary w-full text-white font-semibold hover:bg-primary-focus transition-colors rounded-3xl shadow-lg"
               >
                 Sign in
