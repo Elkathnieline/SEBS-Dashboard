@@ -162,7 +162,7 @@ export default function Sidebar() {
       {/* Desktop Sidebar */}
       <aside 
         className="w-64 flex flex-col hidden lg:flex" 
-        style={{ backgroundColor: '#9DB4B8', height: '100vh', minHeight: '100vh' }}
+        style={{ backgroundColor: '#8fc2c3', height: '100vh', minHeight: '100vh' }}
       >
         <SidebarContent />
       </aside>
@@ -179,7 +179,7 @@ export default function Sidebar() {
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <aside 
               className="w-80 max-w-full h-[90vh] max-h-[600px] flex flex-col rounded-2xl shadow-2xl transform transition-all duration-300 ease-in-out" 
-              style={{ backgroundColor: '#9DB4B8' }}
+              style={{ backgroundColor: '#8fc2c3' }}
             >
               <SidebarContent isMobile={true} />
             </aside>

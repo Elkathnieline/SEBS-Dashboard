@@ -1,6 +1,11 @@
-@import "tailwindcss";
-@plugin "daisyui";
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
+/* DaisyUI theme configurations */
+@plugin "daisyui" {
+  themes: eventplanner --default, eventplanner-dark --prefersdark;
+}
 
 @plugin "daisyui/theme" {
   name: "eventplanner";
@@ -17,7 +22,6 @@
   /* Primary (light blue/teal) */
   --color-primary: #8ec1c2;
   --color-primary-content: #6e9cf3;
-
 
   /* Secondary (pink/rose) */
   --color-secondary: #f7d0d5;
@@ -56,10 +60,82 @@
   /* effects */
   --depth: 1;
   --noise: 0;
-
 }
 
-/* Add to App.css if inline styles don't work */
+@plugin "daisyui/theme" {
+  name: "eventplanner-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  /* Base colors (dark backgrounds) */
+  --color-base-100: #1a1a1a; /* dark charcoal */
+  --color-base-200: #2a2a2a; /* medium charcoal */
+  --color-base-300: #3a3a3a; /* lighter charcoal */
+  --color-base-content: #f0f0f0; /* light text */
+
+  /* Primary (darker teal) */
+  --color-primary: #4a9a9b;
+  --color-primary-content: #ffffff;
+
+  /* Secondary (darker pink) */
+  --color-secondary: #d4a5aa;
+  --color-secondary-content: #ffffff;
+
+  /* Accent (darker coral) */
+  --color-accent: #e85a70;
+  --color-accent-content: #ffffff;
+
+  /* Neutral */
+  --color-neutral: #2a2a2a;
+  --color-neutral-content: #f0f0f0;
+
+  /* Info, Success, Warning, Error */
+  --color-info: #5bb3d4;
+  --color-info-content: #ffffff;
+  --color-success: #4cc9d9;
+  --color-success-content: #ffffff;
+  --color-warning: #e6530c;
+  --color-warning-content: #ffffff;
+  --color-error: #e85a70;
+  --color-error-content: #ffffff;
+
+  /* border radius */
+  --radius-selector: 1rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+
+  /* base sizes */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  /* border size */
+  --border: 1px;
+
+  /* effects */
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Global styles for SEBS Dashboard */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glass effects for both themes */
 .glass-card {
   background: rgba(255, 248, 238, 0.85);
   backdrop-filter: blur(10px);
@@ -67,8 +143,83 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+[data-theme="eventplanner-dark"] .glass-card {
+  background: rgba(42, 42, 42, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .glass-input {
   background: rgba(255, 248, 238, 0.6) !important;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+}
+
+[data-theme="eventplanner-dark"] .glass-input {
+  background: rgba(42, 42, 42, 0.6) !important;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+[data-theme="eventplanner-dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+[data-theme="eventplanner-dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.7);
+}
+
+/* Dashboard-specific styles */
+.dashboard-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Card hover effects */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="eventplanner-dark"] .hover-lift:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Focus styles for accessibility */
+.focus-ring:focus {
+  outline: 2px solid #8ec1c2;
+  outline-offset: 2px;
+}
+
+[data-theme="eventplanner-dark"] .focus-ring:focus {
+  outline-color: #4a9a9b;
 }
