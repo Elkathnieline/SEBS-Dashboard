@@ -26,32 +26,45 @@ export default function Header() {
     fetchMessages();
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = () => {
     setLoading(true);
-    try {
-      const token = sessionStorage.getItem("backend-token");
-      if (!token) {
-        setNotifications(sampleNotifications);
-        return;
-      }
-
-      const response = await fetch('http://localhost:8000/api/notifications', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-      
-      const data = await response.json();
-      setNotifications(data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      setNotifications(sampleNotifications); // Fallback to sample data
-    } finally {
+    const token = sessionStorage.getItem("backend-token");
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    if (!token) {
+      setNotifications(sampleNotifications);
       setLoading(false);
+      return;
     }
+
+    fetch(`${apiUrl}/api/Notification`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        return response.json();
+      })
+      .then(data => {
+        // Map API data to expected format for UI
+        const mapped = data.map(n => ({
+          id: n.notificationId,
+          title: n.title,
+          time: new Date(n.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          read: n.isRead,
+          message: n.message,
+          bookingId: n.bookingId,
+        }));
+        setNotifications(mapped);
+        setError(null);
+      })
+      .catch(err => {
+        setError(err.message);
+        setNotifications(sampleNotifications); // Fallback to sample data
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const fetchMessages = async () => {

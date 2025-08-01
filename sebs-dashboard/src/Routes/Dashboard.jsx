@@ -6,24 +6,33 @@ import RightSidebar from "../Components/Home/RightSidebar";
 import { useTheme } from "../Contexts/ThemeContext.jsx";
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
+  const [bookings, setBookings] = useState(0);
+  const [visits, setVisits] = useState(0);
   const [error, setError] = useState(null);
   const { isDarkTheme } = useTheme();
 
   useEffect(() => {
     const token = sessionStorage.getItem("backend-token");
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+
     if (!token) return;
-    fetch("http://localhost:8000/api/protected-data", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Unauthorized or error fetching data");
-        return res.json();
+
+    // Fetch both stats in parallel
+    Promise.all([
+      fetch(`${apiUrl}/api/Analytics/total-bookings`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .then(setData)
-      .catch(err => setError(err.message));
+        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 0 })))
+        .then(data => setBookings(data.total ?? 0))
+        .catch(() => setBookings(0)),
+
+      fetch(`${apiUrl}/api/Analytics/site-visits`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 0 })))
+        .then(data => setVisits(data.total ?? 0))
+        .catch(() => setVisits(0)),
+    ]).catch(err => setError("Failed to load dashboard stats"));
   }, []);
 
   return (
@@ -39,8 +48,8 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 flex-shrink-0">
               {/* Stats Cards Column */}
               <div className="space-y-6">
-                <StatsCard type="bookings" value={182} />
-                <StatsCard type="visits" value={400} />
+                <StatsCard type="bookings" value={bookings} />
+                <StatsCard type="visits" value={visits} />
               </div>
               
               {/* Booking Chart - Takes 2 columns */}
