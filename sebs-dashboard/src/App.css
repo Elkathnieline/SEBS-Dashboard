@@ -1,16 +1,12 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "tailwindcss";
 
-/* DaisyUI theme configurations */
 @plugin "daisyui" {
-  themes: eventplanner --default, eventplanner-dark --prefersdark;
+  themes: eventplanner, eventplanner-dark ;
 }
 
 @plugin "daisyui/theme" {
   name: "eventplanner";
   default: true;
-  prefersdark: false;
   color-scheme: light;
 
   /* Base colors (backgrounds, cards) */
@@ -65,7 +61,6 @@
 @plugin "daisyui/theme" {
   name: "eventplanner-dark";
   default: false;
-  prefersdark: true;
   color-scheme: dark;
 
   /* Base colors (dark backgrounds) */
@@ -116,8 +111,8 @@
   --depth: 1;
   --noise: 0;
 }
-
-/* Global styles for SEBS Dashboard */
+/* 
+Global styles for SEBS Dashboard */
 * {
   box-sizing: border-box;
 }

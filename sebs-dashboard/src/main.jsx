@@ -1,6 +1,12 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import React, { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  createRoutesFromElements,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import "./App.css";
 
 // Import ThemeProvider
@@ -10,10 +16,13 @@ import { ThemeProvider } from "./Contexts/ThemeContext.jsx";
 import Root from "./Routes/Root.jsx";
 import Dashboard from "./Routes/Dashboard.jsx";
 import Settings from "./Routes/Settings.jsx";
-import BookingManagement from "./Routes/Management.jsx";
+import Management from "./Routes/Management.jsx";
 import Reports from "./Routes/Reports.jsx";
 import Gallery from "./Routes/Gallery.jsx";
+import RequireAuth from "./Components/Security/requireAuth.jsx";
 import Login from "./Routes/Login.jsx";
+import ErrorPage from "./ErrorPage.jsx";
+import { AuthProvider } from "./Contexts/AuthContext.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -42,7 +51,7 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
       <ThemeProvider>
-        <RouterProvider router={router} />
+      <RouterProvider router={router} />
       </ThemeProvider>
     </AuthProvider>
   </StrictMode>

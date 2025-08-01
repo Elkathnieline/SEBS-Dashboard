@@ -48,21 +48,8 @@ export const ThemeProvider = ({ children }) => {
       setCurrentTheme(savedTheme);
       setBrightness(savedBrightness);
 
-      // Sync with backend if user is authenticated
-      const token = sessionStorage.getItem("backend-token");
-      if (token) {
-        const response = await fetch('http://localhost:8000/api/user/preferences', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const preferences = await response.json();
-          if (preferences.theme) setCurrentTheme(preferences.theme);
-          if (preferences.brightness !== undefined) setBrightness(preferences.brightness);
-        }
-      }
+      // Remove backend sync with auth token
+      // If you want to support per-user preferences, move this logic to AuthContext or a user settings context
     } catch (err) {
       console.error('Failed to load theme preferences:', err);
     } finally {
@@ -71,24 +58,8 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const syncWithBackend = async () => {
-    try {
-      const token = sessionStorage.getItem("backend-token");
-      if (token) {
-        await fetch('http://localhost:8000/api/user/preferences', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            theme: currentTheme,
-            brightness: brightness,
-          }),
-        });
-      }
-    } catch (err) {
-      console.error('Failed to sync theme preferences:', err);
-    }
+    // Remove backend sync with auth token
+    // If you want to support per-user preferences, move this logic to AuthContext or a user settings context
   };
 
   const toggleTheme = () => {
