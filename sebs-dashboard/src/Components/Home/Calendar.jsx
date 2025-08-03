@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 
 export default function Calendar() {
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 11, 1)); // December 2024
+  // Set default date to today
+  const [currentDate, setCurrentDate] = useState(new Date()); // Default to today
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -64,38 +65,56 @@ export default function Calendar() {
   // Fetch calendar data
   useEffect(() => {
     fetchCalendarData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
 
-  const fetchCalendarData = async () => {
+  const fetchCalendarData = () => {
     setLoading(true);
     setError(null);
-    
-    try {
-      const token = sessionStorage.getItem("backend-token");
-      if (!token) {
-        setEvents(sampleEvents);
-        setLoading(false);
-        return;
-      }
 
-      const response = await fetch(`http://localhost:8000/api/calendar/${currentYear}/${currentMonth + 1}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const token = sessionStorage.getItem("backend-token");
+    const apiUrl = import.meta.env.VITE_API_URL || "";
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch calendar data");
-      }
-      
-      const data = await response.json();
-      setEvents(data);
-    } catch (err) {
-      setError(err.message);
-      setEvents(sampleEvents); // Fallback to sample data
-    } finally {
+    if (!token) {
+      setEvents(sampleEvents);
       setLoading(false);
+      return;
     }
+
+    fetch(`${apiUrl}/api/Analytics/calendar`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(response => {
+        if (!response.ok) throw new Error("Failed to fetch calendar data");
+        return response.json();
+      })
+      .then(data => {
+        // Filter events for the current month and year
+        const filtered = data.filter(event => {
+          const eventDate = new Date(event.date);
+          return (
+            eventDate.getFullYear() === currentYear &&
+            eventDate.getMonth() === currentMonth
+          );
+        }).map(event => ({
+          ...event,
+          date: new Date(event.date).getDate(),
+          color: event.status === "approved"
+            ? "bg-green-400 text-white"
+            : "bg-purple-300 text-white",
+          span: 1
+        }));
+        setEvents(filtered);
+      })
+      .catch(err => {
+        setError(err.message);
+        setEvents(sampleEvents); // Fallback to sample data
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const handleEventClick = (event) => {
@@ -219,8 +238,10 @@ export default function Calendar() {
       <div className="p-4 flex-shrink-0">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-gray-800">
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <CalendarIcon size={20} className="text-primary" />
             Calendar
+            <span className="ml-2 badge badge-outline badge-lg text-base-content bg-base-100 border-base-300">{currentYear}</span>
           </h2>
           
           {/* Month Dropdown */}
