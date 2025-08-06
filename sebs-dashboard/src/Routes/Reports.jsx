@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Download, Filter, Calendar } from 'lucide-react';
-import { useTheme } from '../Contexts/ThemeContext.jsx';
-import StatsCard from '../Components/Home/StatsCard.jsx';
-import BookingChart from '../Components/Home/BookingChart.jsx';
+import { useState, useEffect } from "react";
+import { BarChart3, Calendar } from "lucide-react";
+import { useTheme } from "../Contexts/ThemeContext.jsx";
+import StatsCard from "../Components/Home/StatsCard.jsx";
+import BookingChart from "../Components/Home/BookingChart.jsx";
 
 export default function Reports() {
   const { isDarkTheme } = useTheme();
@@ -12,7 +12,7 @@ export default function Reports() {
   const [monthlyVisits, setMonthlyVisits] = useState(87);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateRange, setDateRange] = useState('year');
+  const [dateRange, setDateRange] = useState("year");
 
   useEffect(() => {
     const token = sessionStorage.getItem("backend-token");
@@ -27,263 +27,179 @@ export default function Reports() {
       fetch(`${apiUrl}/api/Analytics/total-bookings`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 182 })))
-        .then(data => setBookings(data.total ?? 182))
+        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 182 })))
+        .then((data) => setBookings(data.total ?? 182))
         .catch(() => setBookings(182)),
 
       fetch(`${apiUrl}/api/Analytics/site-visits`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 400 })))
-        .then(data => setVisits(data.total ?? 400))
+        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 400 })))
+        .then((data) => setVisits(data.total ?? 400))
         .catch(() => setVisits(400)),
 
       fetch(`${apiUrl}/api/Analytics/monthly-bookings`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 8 })))
-        .then(data => setMonthlyBookings(data.total ?? 8))
+        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 8 })))
+        .then((data) => setMonthlyBookings(data.total ?? 8))
         .catch(() => setMonthlyBookings(8)),
 
-      fetch(`${apiUrl}/api/Analytics/monthly-visits`, {
+      fetch(`${apiUrl}/api/Analytics/site-visits`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 87 })))
-        .then(data => setMonthlyVisits(data.total ?? 87))
+        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 87 })))
+        .then((data) => setMonthlyVisits(data.total ?? 87))
         .catch(() => setMonthlyVisits(87)),
     ])
-      .catch(err => setError("Failed to load analytics data"))
+      .catch((err) => setError("Failed to load analytics data"))
       .finally(() => setLoading(false));
   }, [dateRange]);
 
-  // Market Projection Component
-  const MarketProjection = () => (
-    <div className={`card shadow-lg ${
-      isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
-    }`}>
-      <div className="card-body">
-        <h3 className={`card-title text-lg ${isDarkTheme ? 'text-white' : 'text-base-content'}`}>
-          Market Projection
-        </h3>
-        <div className="w-full h-64 flex items-center justify-center">
-          {/* Simple bar chart visualization matching your image */}
-          <div className="flex items-end justify-center gap-1 h-32 w-full">
-            {[75, 78, 82, 85, 90, 88, 92, 95, 98, 93, 89, 85, 82, 79, 76, 73, 70, 68, 65, 70, 75, 80, 85, 90, 95, 100].map((height, index) => (
+  if (loading) {
+    return (
+      <div
+        className={`h-screen overflow-hidden p-6 transition-colors duration-300 ${
+          isDarkTheme ? "bg-gray-900" : "bg-gray-50"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto h-full">
+          <div
+            className={`skeleton h-8 w-64 mb-6 ${
+              isDarkTheme ? "bg-gray-700" : ""
+            }`}
+          ></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[...Array(4)].map((_, i) => (
               <div
-                key={index}
-                className="bg-blue-500 rounded-sm flex-1 max-w-2"
-                style={{ height: `${height}%` }}
+                key={i}
+                className={`skeleton h-24 ${isDarkTheme ? "bg-gray-700" : ""}`}
               ></div>
             ))}
           </div>
-        </div>
-        <div className={`flex justify-between text-xs ${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
-          <span>75</span>
-          <span>85</span>
-          <span>100</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (loading) {
-    return (
-      <div className={`min-h-screen p-6 transition-colors duration-300 ${
-        isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
-        <div className="max-w-7xl mx-auto">
-          <div className={`skeleton h-8 w-64 mb-8 ${isDarkTheme ? 'bg-gray-700' : ''}`}></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className={`skeleton h-32 ${isDarkTheme ? 'bg-gray-700' : ''}`}></div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className={`skeleton h-80 ${isDarkTheme ? 'bg-gray-700' : ''}`}></div>
-            <div className={`skeleton h-80 lg:col-span-2 ${isDarkTheme ? 'bg-gray-700' : ''}`}></div>
-          </div>
+          <div
+            className={`skeleton h-64 ${isDarkTheme ? "bg-gray-700" : ""}`}
+          ></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen p-6 transition-colors duration-300 ${
-      isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
-    }`}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+    <div
+      className={`h-screen overflow-hidden transition-colors duration-300 ${
+        isDarkTheme ? "bg-gray-900" : "bg-gray-50"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto h-full flex flex-col px-4 py-2 space-y-4">
+        {/* HEADER */}
+        <div className="flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              isDarkTheme ? 'bg-blue-600' : 'bg-primary'
-            }`}>
-              <BarChart3 size={24} className="text-white" />
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                isDarkTheme ? "bg-blue-600" : "bg-primary"
+              }`}
+            >
+              <BarChart3 size={20} className="text-white" />
             </div>
             <div>
-              <h1 className={`text-3xl font-bold ${isDarkTheme ? 'text-white' : 'text-base-content'}`}>
+              <h1
+                className={`text-2xl font-bold ${
+                  isDarkTheme ? "text-white" : "text-base-content"
+                }`}
+              >
                 Report and Insights
               </h1>
-              <p className={`${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
+              <p
+                className={`text-sm ${
+                  isDarkTheme ? "text-gray-400" : "text-base-content/60"
+                }`}
+              >
                 Analytics and performance metrics for your business
               </p>
             </div>
           </div>
-          
-          {/* Controls */}
           <div className="flex items-center gap-4">
-            <select 
+            <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className={`select select-bordered ${
-                isDarkTheme 
-                  ? 'bg-gray-800 border-gray-700 text-white' 
-                  : 'bg-base-100'
+              className={`select select-sm select-bordered ${
+                isDarkTheme
+                  ? "bg-gray-800 border-gray-700 text-white"
+                  : "bg-base-100"
               }`}
             >
               <option value="week">This Week</option>
               <option value="month">This Month</option>
               <option value="year">Year</option>
             </select>
-            
-            <button className={`btn btn-outline gap-2 ${
-              isDarkTheme 
-                ? 'border-gray-700 text-gray-300 hover:bg-gray-700' 
-                : ''
-            }`}>
-              <Download size={16} />
-              Export
-            </button>
           </div>
         </div>
 
-        {/* Stats Cards Row - 4 cards in a row for reports layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className={`card shadow-lg ${
-            isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
-          }`}>
-            <div className="card-body">
-              <h3 className={`text-sm font-medium ${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
-                Total Bookings
-              </h3>
-              <p className="text-3xl font-bold text-green-500">{bookings}</p>
-            </div>
-          </div>
-          
-          <div className={`card shadow-lg ${
-            isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
-          }`}>
-            <div className="card-body">
-              <h3 className={`text-sm font-medium ${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
-                Total Visits
-              </h3>
-              <p className="text-3xl font-bold text-purple-500">{visits}</p>
-            </div>
-          </div>
-          
-          <div className={`card shadow-lg ${
-            isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
-          }`}>
-            <div className="card-body">
-              <h3 className={`text-sm font-medium ${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
-                This month's bookings
-              </h3>
-              <p className="text-3xl font-bold text-green-500">{monthlyBookings}</p>
-            </div>
-          </div>
-          
-          <div className={`card shadow-lg ${
-            isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
-          }`}>
-            <div className="card-body">
-              <h3 className={`text-sm font-medium ${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
-                This month's visits
-              </h3>
-              <p className="text-3xl font-bold text-purple-500">{monthlyVisits}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Charts Row - Market Projection + Booking Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Market Projection Chart */}
-          <div className="lg:col-span-1">
-            <MarketProjection />
-          </div>
-
-          {/* Booking Chart - Takes 2 columns */}
-          <div className="lg:col-span-2">
-            <BookingChart />
-          </div>
-        </div>
-
-        {/* Additional Analytics Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Performance Metrics */}
-          <div className={`card shadow-lg ${
-            isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
-          }`}>
-            <div className="card-body">
-              <h3 className={`card-title ${isDarkTheme ? 'text-white' : 'text-base-content'}`}>
-                <TrendingUp size={20} />
-                Performance Metrics
-              </h3>
-              <div className="space-y-4 mt-4">
-                <div className="flex justify-between items-center">
-                  <span className={isDarkTheme ? 'text-gray-300' : 'text-base-content'}>Conversion Rate</span>
-                  <span className="text-green-500 font-semibold">12.3%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={isDarkTheme ? 'text-gray-300' : 'text-base-content'}>Average Booking Value</span>
-                  <span className="text-blue-500 font-semibold">$2,450</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={isDarkTheme ? 'text-gray-300' : 'text-base-content'}>Customer Satisfaction</span>
-                  <span className="text-purple-500 font-semibold">98.5%</span>
-                </div>
+        {/* STATS CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
+          {[
+            {
+              label: "Total Bookings",
+              value: bookings,
+              color: "text-green-500",
+            },
+            {
+              label: "Total Visits",
+              value: visits,
+              color: "text-purple-500",
+            },
+            {
+              label: "This month's bookings",
+              value: monthlyBookings,
+              color: "text-green-500",
+            },
+            {
+              label: "This month's visits",
+              value: monthlyVisits,
+              color: "text-purple-500",
+            },
+          ].map(({ label, value, color }, i) => (
+            <div
+              key={i}
+              className={`card shadow-lg h-32 ${
+                isDarkTheme
+                  ? "bg-gray-800 border border-gray-700"
+                  : "bg-base-200"
+              }`}
+            >
+              <div className="card-body p-4 flex flex-col justify-center h-full">
+                <h3
+                  className={`text-sm font-medium mb-2 ${
+                    isDarkTheme ? "text-gray-400" : "text-base-content/60"
+                  }`}
+                >
+                  {label}
+                </h3>
+                <p className={`text-3xl font-bold ${color}`}>{value}</p>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* Quick Stats */}
-          <div className={`card shadow-lg ${
-            isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
-          }`}>
-            <div className="card-body">
-              <h3 className={`card-title ${isDarkTheme ? 'text-white' : 'text-base-content'}`}>
-                <Calendar size={20} />
-                Recent Activity
-              </h3>
-              <div className="space-y-3 mt-4">
-                <div className={`p-3 rounded-lg ${isDarkTheme ? 'bg-gray-700' : 'bg-base-100'}`}>
-                  <p className={`text-sm ${isDarkTheme ? 'text-gray-300' : 'text-base-content'}`}>
-                    5 new bookings today
-                  </p>
-                  <p className={`text-xs ${isDarkTheme ? 'text-gray-500' : 'text-base-content/60'}`}>
-                    2 hours ago
-                  </p>
-                </div>
-                <div className={`p-3 rounded-lg ${isDarkTheme ? 'bg-gray-700' : 'bg-base-100'}`}>
-                  <p className={`text-sm ${isDarkTheme ? 'text-gray-300' : 'text-base-content'}`}>
-                    Revenue increased by 15%
-                  </p>
-                  <p className={`text-xs ${isDarkTheme ? 'text-gray-500' : 'text-base-content/60'}`}>
-                    Yesterday
-                  </p>
-                </div>
-              </div>
-            </div>
+        {/* BOOKING CHART */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="h-full">
+            <BookingChart height={450} />
           </div>
         </div>
 
-        {/* Error Display */}
+        {/* ERROR ALERT */}
         {error && (
-          <div className={`alert shadow-lg mt-6 ${
-            isDarkTheme 
-              ? 'bg-red-900 border-red-700 text-red-100' 
-              : 'alert-error'
-          }`}>
-            <span>{error}</span>
+          <div
+            className={`absolute bottom-4 left-4 right-4 alert shadow-lg ${
+              isDarkTheme
+                ? "bg-red-900 border-red-700 text-red-100"
+                : "alert-error"
+            }`}
+            style={{ zIndex: 50 }}
+          >
+            <span className="text-sm">{error}</span>
           </div>
         )}
       </div>

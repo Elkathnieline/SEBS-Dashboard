@@ -1,82 +1,70 @@
-import { useState, useEffect } from 'react';
-import { ChevronDown, Check, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Clock, ChevronDown } from 'lucide-react';
+import { useTheme } from '../../Contexts/ThemeContext.jsx';
+import PropTypes from 'prop-types';
 
-export default function BookingChart() {
-  const [chartData, setChartData] = useState([]);
+export default function BookingChart({ height = 252 }) {
+  const { isDarkTheme } = useTheme();
   const [selectedYear, setSelectedYear] = useState('2025');
-  const [loading, setLoading] = useState(false);
-
-  // Always show all months, even if API returns less
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  
+  // Sample data - replace with real data
+  const monthlyData = [
+    { month: 'Jan', accepted: 0, pending: 0 },
+    { month: 'Feb', accepted: 0, pending: 0 },
+    { month: 'Mar', accepted: 0, pending: 0 },
+    { month: 'Apr', accepted: 0, pending: 0 },
+    { month: 'May', accepted: 0, pending: 0 },
+    { month: 'Jun', accepted: 0, pending: 0 },
+    { month: 'Jul', accepted: 1, pending: 0 },
+    { month: 'Aug', accepted: 1, pending: 1 },
+    { month: 'Sep', accepted: 0, pending: 0 },
+    { month: 'Oct', accepted: 0, pending: 0 },
+    { month: 'Nov', accepted: 0, pending: 0 },
+    { month: 'Dec', accepted: 0, pending: 0 },
   ];
 
-  // Empty data for fallback (empty bars)
-  const emptyData = months.map(month => ({
-    month,
-    green: 0,
-    purple: 0
-  }));
+  const maxValue = Math.max(...monthlyData.map(d => d.accepted + d.pending)) || 1;
 
-  useEffect(() => {
-    fetchChartData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear]);
-
-  const fetchChartData = async () => {
-    setLoading(true);
-    try {
-      const token = sessionStorage.getItem("backend-token");
-      const apiUrl = import.meta.env.VITE_API_URL || "";
-      if (!token) {
-        setChartData(emptyData);
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(
-        `${apiUrl}/api/Analytics/booking-chart?year=${selectedYear}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to fetch chart data');
-
-      const data = await response.json();
-      // Ensure all months are present for consistent chart
-      const merged = months.map(month => {
-        const found = data.find(d => d.month === month);
-        return found || { month, green: 0, purple: 0 };
-      });
-      setChartData(merged);
-    } catch (err) {
-      setChartData(emptyData); // Show empty bars on error
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Find the max value for scaling bars (avoid division by zero)
-  const maxValue = Math.max(1, ...chartData.flatMap(item => [item.green, item.purple]));
+  // Dynamically adjust chart bar height based on container height
+  const chartBarHeight = height > 350 ? 'h-48' : 'h-24';
 
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-200 rounded-2xl" style={{ height: '252px' }}>
+    <div 
+      className={`card shadow-sm border rounded-2xl h-full ${
+        isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-base-100 border-base-200'
+      }`} 
+      style={{ height: `${height}px` }}
+    >
       <div className="card-body p-4 flex flex-col h-full">
+        {/* Header */}
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
-          <h3 className="text-lg font-semibold text-base-content">Booking Chart</h3>
+          <h3 className={`text-lg font-semibold ${
+            isDarkTheme ? 'text-white' : 'text-base-content'
+          }`}>
+            Booking Chart
+          </h3>
           <div className="dropdown dropdown-end">
-            <button tabIndex={0} className="btn btn-sm btn-ghost gap-2">
-              {selectedYear} <ChevronDown size={16} />
+            <button 
+              tabIndex={0} 
+              className={`btn btn-sm btn-ghost gap-2 ${
+                isDarkTheme ? 'text-white hover:bg-gray-700' : ''
+              }`}
+            >
+              {selectedYear} 
+              <ChevronDown size={16} />
             </button>
-            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-32 p-2 shadow border border-base-200">
+            <ul 
+              tabIndex={0} 
+              className={`dropdown-content menu rounded-box z-[1] w-32 p-2 shadow border ${
+                isDarkTheme 
+                  ? 'bg-gray-800 border-gray-600' 
+                  : 'bg-base-100 border-base-200'
+              }`}
+            >
               {['2025', '2026', '2027'].map(year => (
                 <li key={year}>
-                  <a
-                    className={year === selectedYear ? "active" : ""}
+                  <a 
+                    className={selectedYear === year ? 'active' : ''}
                     onClick={() => setSelectedYear(year)}
                   >
                     {year}
@@ -88,53 +76,64 @@ export default function BookingChart() {
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 mb-2">
+        <div className="flex gap-4 mb-4 flex-shrink-0">
           <div className="flex items-center gap-1">
             <Check size={14} className="text-green-400" />
-            <span className="text-xs text-base-content/70">Accepted</span>
+            <span className={`text-xs ${
+              isDarkTheme ? 'text-gray-300' : 'text-base-content/70'
+            }`}>
+              Accepted
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <Clock size={14} className="text-purple-400" />
-            <span className="text-xs text-base-content/70">Pending</span>
+            <span className={`text-xs ${
+              isDarkTheme ? 'text-gray-300' : 'text-base-content/70'
+            }`}>
+              Pending
+            </span>
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center flex-1">
-            <span className="loading loading-spinner loading-md"></span>
-          </div>
-        ) : (
-          <div className="flex-1 min-h-0">
-            <div className="flex items-end justify-between h-full gap-1">
-              {chartData.map((item, index) => (
-                <div key={item.month} className="flex flex-col items-center flex-1">
-                  <div className="flex items-end gap-0.5 h-24 mb-1">
-                    {/* Accepted (green) */}
-                    <div
-                      className="bg-green-400 rounded-t w-2 transition-all duration-300"
-                      style={{
-                        height: `${(item.green / maxValue) * 100}%`,
-                        minHeight: '4px'
-                      }}
-                      title={`Accepted: ${item.green}`}
-                    ></div>
-                    {/* Pending (purple) */}
-                    <div
-                      className="bg-purple-400 rounded-t w-2 transition-all duration-300"
-                      style={{
-                        height: `${(item.purple / maxValue) * 100}%`,
-                        minHeight: '4px'
-                      }}
-                      title={`Pending: ${item.purple}`}
-                    ></div>
-                  </div>
-                  <span className="text-xs text-base-content/60">{item.month}</span>
+        {/* Chart Area - Dynamic height based on container */}
+        <div className="flex-1 min-h-0">
+          <div className="flex items-end justify-between h-full gap-1">
+            {monthlyData.map((data, index) => (
+              <div key={index} className="flex flex-col items-center flex-1">
+                {/* Bars - Dynamic height */}
+                <div className={`flex items-end gap-0.5 ${chartBarHeight} mb-2`}>
+                  <div 
+                    className="bg-green-400 rounded-t w-3 transition-all duration-300"
+                    title={`Accepted: ${data.accepted}`}
+                    style={{
+                      height: data.accepted > 0 ? `${(data.accepted / maxValue) * 100}%` : '0%',
+                      minHeight: '4px'
+                    }}
+                  />
+                  <div 
+                    className="bg-purple-400 rounded-t w-3 transition-all duration-300"
+                    title={`Pending: ${data.pending}`}
+                    style={{
+                      height: data.pending > 0 ? `${(data.pending / maxValue) * 100}%` : '0%',
+                      minHeight: '4px'
+                    }}
+                  />
                 </div>
-              ))}
-            </div>
+                {/* Month labels */}
+                <span className={`text-xs ${
+                  isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
+                }`}>
+                  {data.month}
+                </span>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 }
+
+BookingChart.propTypes = {
+  height: PropTypes.number,
+};
