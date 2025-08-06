@@ -86,35 +86,27 @@ export default function Reports() {
   }
 
   return (
-    <div
-      className={`h-screen overflow-hidden transition-colors duration-300 ${
-        isDarkTheme ? "bg-gray-900" : "bg-gray-50"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto h-full flex flex-col px-4 py-2 space-y-4">
-        {/* HEADER */}
-        <div className="flex items-center justify-between flex-shrink-0">
+    <div className={`h-full p-6 overflow-hidden transition-colors duration-300 ${
+      isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
+    }`}>
+      <div className="h-full flex flex-col max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                isDarkTheme ? "bg-blue-600" : "bg-primary"
-              }`}
-            >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              isDarkTheme ? 'bg-blue-600' : 'bg-primary'
+            }`}>
               <BarChart3 size={20} className="text-white" />
             </div>
             <div>
-              <h1
-                className={`text-2xl font-bold ${
-                  isDarkTheme ? "text-white" : "text-base-content"
-                }`}
-              >
+              <h1 className={`text-2xl font-bold ${
+                isDarkTheme ? 'text-white' : 'text-base-content'
+              }`}>
                 Report and Insights
               </h1>
-              <p
-                className={`text-sm ${
-                  isDarkTheme ? "text-gray-400" : "text-base-content/60"
-                }`}
-              >
+              <p className={`text-sm ${
+                isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
+              }`}>
                 Analytics and performance metrics for your business
               </p>
             </div>
@@ -125,8 +117,8 @@ export default function Reports() {
               onChange={(e) => setDateRange(e.target.value)}
               className={`select select-sm select-bordered ${
                 isDarkTheme
-                  ? "bg-gray-800 border-gray-700 text-white"
-                  : "bg-base-100"
+                  ? 'bg-gray-800 border-gray-700 text-white'
+                  : 'bg-base-100'
               }`}
             >
               <option value="week">This Week</option>
@@ -136,70 +128,45 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* STATS CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
-          {[
-            {
-              label: "Total Bookings",
-              value: bookings,
-              color: "text-green-500",
-            },
-            {
-              label: "Total Visits",
-              value: visits,
-              color: "text-purple-500",
-            },
-            {
-              label: "This month's bookings",
-              value: monthlyBookings,
-              color: "text-green-500",
-            },
-            {
-              label: "This month's visits",
-              value: monthlyVisits,
-              color: "text-purple-500",
-            },
-          ].map(({ label, value, color }, i) => (
-            <div
-              key={i}
-              className={`card shadow-lg h-32 ${
-                isDarkTheme
-                  ? "bg-gray-800 border border-gray-700"
-                  : "bg-base-200"
-              }`}
-            >
-              <div className="card-body p-4 flex flex-col justify-center h-full">
-                <h3
-                  className={`text-sm font-medium mb-2 ${
-                    isDarkTheme ? "text-gray-400" : "text-base-content/60"
-                  }`}
-                >
-                  {label}
-                </h3>
-                <p className={`text-3xl font-bold ${color}`}>{value}</p>
+        {/* Main Content Layout */}
+        <div className="flex-1 min-h-0 flex flex-col gap-6">
+          {/* Stats Cards Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
+            {[
+              { label: "Total Bookings", value: bookings, color: "text-green-500" },
+              { label: "Total Visits", value: visits, color: "text-purple-500" },
+              { label: "This month's bookings", value: monthlyBookings, color: "text-green-500" },
+              { label: "This month's visits", value: monthlyVisits, color: "text-purple-500" },
+            ].map(({ label, value, color }, i) => (
+              <div key={i} className={`card shadow-lg h-32 ${
+                isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
+              }`}>
+                <div className="card-body p-4 flex flex-col justify-center h-full">
+                  <h3 className={`text-sm font-medium mb-2 ${
+                    isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
+                  }`}>
+                    {label}
+                  </h3>
+                  <p className={`text-3xl font-bold ${color}`}>{value}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* BOOKING CHART */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <div className="h-full">
-            <BookingChart height={450} />
+          {/* Chart - Percentage of viewport height */}
+          <div className="flex-shrink-0" style={{ height: '50vh' }}>
+            <BookingChart height="100%" />
           </div>
         </div>
 
-        {/* ERROR ALERT */}
+        {/* Error Display */}
         {error && (
-          <div
-            className={`absolute bottom-4 left-4 right-4 alert shadow-lg ${
-              isDarkTheme
-                ? "bg-red-900 border-red-700 text-red-100"
-                : "alert-error"
-            }`}
-            style={{ zIndex: 50 }}
-          >
-            <span className="text-sm">{error}</span>
+          <div className={`alert shadow-lg mt-4 flex-shrink-0 ${
+            isDarkTheme 
+              ? 'bg-red-900 border-red-700 text-red-100' 
+              : 'alert-error'
+          }`}>
+            <span>{error}</span>
           </div>
         )}
       </div>
