@@ -1,144 +1,195 @@
 import { useState } from 'react';
-import { Upload, Image } from 'lucide-react';
+import { Upload, Calendar, Image } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
-import PropTypes from 'prop-types';
 
-export default function PhotoUpload({ onUpload }) {
+export default function PhotoUpload({ onUpload, onEventUpload }) {
   const { isDarkTheme } = useTheme();
-  const [dragActive, setDragActive] = useState(false);
-  const [caption, setCaption] = useState('');
+  const [eventTitle, setEventTitle] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
+  // All uploads create events (even single photos)
+  const requiresTitle = selectedFiles.length > 0;
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(files);
     
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
+    // Auto-generate title based on file count and date
+    if (files.length > 0 && !eventTitle.trim()) {
+      const today = new Date().toLocaleDateString();
+      if (files.length === 1) {
+        setEventTitle(`Photo - ${today}`);
+      } else {
+        setEventTitle(`Event - ${today}`);
+      }
     }
   };
 
-  const handleFiles = (files) => {
-    const file = files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const newPhoto = {
-          id: Date.now().toString(),
-          url: e.target.result,
-          caption: caption || 'Untitled Photo',
-          date: new Date().toISOString(),
-          file: file
-        };
-        onUpload(newPhoto);
-        setCaption('');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (selectedFiles.length === 0 || !eventTitle.trim()) return;
+
+    setIsUploading(true);
+
+    // All uploads create events (single or multiple photos)
+    setTimeout(() => {
+      const eventId = Date.now();
+      const eventPhotos = selectedFiles.map((file, index) => ({
+        id: eventId + index,
+        url: URL.createObjectURL(file),
+        caption: selectedFiles.length === 1 
+          ? eventTitle 
+          : `${eventTitle} - Photo ${index + 1}`,
+        eventId: eventId,
+        uploadDate: new Date().toISOString()
+      }));
+
+      const newEvent = {
+        id: eventId,
+        title: eventTitle,
+        photos: eventPhotos,
+        createdAt: new Date().toISOString(),
+        status: 'draft', // Not uploaded to frontend yet
+        isPublished: false
       };
-      reader.readAsDataURL(file);
-    }
+
+      onEventUpload(newEvent);
+      resetForm();
+    }, 1500);
   };
 
-  const handleFileInput = (e) => {
-    if (e.target.files) {
-      handleFiles(e.target.files);
-    }
-  };
-
-  const triggerFileInput = () => {
-    document.getElementById('file-upload').click();
+  const resetForm = () => {
+    setEventTitle('');
+    setSelectedFiles([]);
+    setIsUploading(false);
+    // Reset file input
+    const fileInput = document.querySelector('#photo-upload-input');
+    if (fileInput) fileInput.value = '';
   };
 
   return (
-    <div className={`card shadow-lg mb-6 w-[40vw] max-w-md mx-auto ${
+    <div className={`card shadow-lg h-full ${
       isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-100'
     }`}>
-      <div className="card-body">
-        <h2 className={`text-2xl font-bold mb-2 ${
-          isDarkTheme ? 'text-white' : 'text-base-content'
-        }`}>
-          Gallery
-        </h2>
-        <p className={`mb-6 ${
-          isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
-        }`}>
-          Upload Images
-        </p>
-
-        {/* Caption Input */}
-        <div className="form-control mb-6">
-          <input 
-            type="text" 
-            placeholder="Enter photo caption..."
-            className={`input input-bordered ${
-              isDarkTheme ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-base-100'
-            }`}
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-          />
+      <div className="card-body h-full flex flex-col">
+        <div className="flex items-center gap-2 mb-6 flex-shrink-0">
+          <Calendar size={20} className="text-primary" />
+          <div>
+            <h2 className={`card-title ${
+              isDarkTheme ? 'text-white' : 'text-base-content'
+            }`}>
+              Create Event
+            </h2>
+            <p className={`text-sm ${
+              isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
+            }`}>
+              {selectedFiles.length === 1 ? 'Single photo event' : selectedFiles.length > 1 ? `${selectedFiles.length} photos event` : 'Upload photos as event'}
+            </p>
+          </div>
         </div>
 
-        {/* Upload Area */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 cursor-pointer ${
-            dragActive 
-              ? 'border-primary bg-primary/10 scale-105' 
-              : isDarkTheme 
-                ? 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/50' 
-                : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-          }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          onClick={triggerFileInput}
-        >
-          {/* Upload Icon - Smaller for compact design */}
-          <div className={`mb-4 ${
-            isDarkTheme ? 'text-gray-400' : 'text-gray-500'
-          }`}>
-            <Upload size={48} className="mx-auto" strokeWidth={1.5} />
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+          {/* Event Title - Always required */}
+          <div className="form-control">
+            <label className="label">
+              <span className={`label-text ${
+                isDarkTheme ? 'text-gray-300' : 'text-base-content'
+              }`}>
+                Event Title *
+              </span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Birthday Party, Nature Walk, Family Dinner"
+              className={`input input-bordered ${
+                isDarkTheme ? 'bg-gray-700 border-gray-600 text-white' : ''
+              }`}
+              value={eventTitle}
+              onChange={(e) => setEventTitle(e.target.value)}
+              required
+            />
           </div>
 
-          {/* Upload Button */}
-          <button 
-            type="button"
-            className="btn btn-primary btn-md px-6 py-2"
-            onClick={triggerFileInput}
+          {/* File Upload */}
+          <div className="form-control flex-1">
+            <label className="label">
+              <span className={`label-text ${
+                isDarkTheme ? 'text-gray-300' : 'text-base-content'
+              }`}>
+                Select Photos
+              </span>
+            </label>
+            <input
+              id="photo-upload-input"
+              type="file"
+              multiple
+              accept="image/*"
+              className={`file-input file-input-bordered ${
+                isDarkTheme ? 'bg-gray-700 border-gray-600' : ''
+              }`}
+              onChange={handleFileSelect}
+              required
+            />
+            
+            {selectedFiles.length > 0 && (
+              <div className="label">
+                <span className="label-text-alt text-primary">
+                  {selectedFiles.length} photo{selectedFiles.length > 1 ? 's' : ''} selected
+                  <span className="ml-2 badge badge-primary badge-sm">
+                    Event Mode
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Preview Grid */}
+          {selectedFiles.length > 0 && (
+            <div className="form-control">
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {selectedFiles.slice(0, 4).map((file, index) => (
+                  <div
+                    key={index}
+                    className={`relative rounded-lg overflow-hidden border ${
+                      isDarkTheme ? 'border-gray-600' : 'border-base-300'
+                    }`}
+                  >
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-16 object-cover"
+                    />
+                    {selectedFiles.length > 4 && index === 3 && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <span className="text-white text-xs font-medium">
+                          +{selectedFiles.length - 4}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isUploading || selectedFiles.length === 0 || !eventTitle.trim()}
+            className={`btn btn-primary w-full mt-auto flex-shrink-0 ${isUploading ? 'loading' : ''}`}
           >
-            Upload
+            {isUploading ? (
+              'Creating Event...'
+            ) : (
+              <>
+                <Calendar size={16} />
+                Create Event ({selectedFiles.length} photo{selectedFiles.length !== 1 ? 's' : ''})
+              </>
+            )}
           </button>
-
-          {/* Hidden file input */}
-          <input
-            id="file-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleFileInput}
-            className="hidden"
-            multiple={false}
-          />
-        </div>
-
-        {/* Helper text */}
-        <p className={`text-center text-xs mt-3 ${
-          isDarkTheme ? 'text-gray-500' : 'text-base-content/60'
-        }`}>
-          Drag and drop images here or click upload button
-        </p>
+        </form>
       </div>
     </div>
   );
 }
-
-PhotoUpload.propTypes = {
-  onUpload: PropTypes.func.isRequired,
-};
