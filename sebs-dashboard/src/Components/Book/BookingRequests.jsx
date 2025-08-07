@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Package, Edit } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
 import BookingPreview from './BookingPreview.jsx';
@@ -9,12 +9,26 @@ export default function BookingRequests() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    fetchBookings();
+    console.log('BookingRequests useEffect triggered');
+    if (!hasInitialized.current) {
+      console.log('First time initialization');
+      fetchBookings();
+      hasInitialized.current = true;
+    } else {
+      console.log('Preventing re-fetch - component already initialized');
+    }
   }, []);
 
+  // Add debugging for component re-renders
+  useEffect(() => {
+    console.log('BookingRequests re-rendered');
+  });
+
   const fetchBookings = () => {
+    console.log('fetchBookings called');
     setLoading(true);
     setTimeout(() => {
       const mockBookings = [
@@ -79,24 +93,39 @@ export default function BookingRequests() {
           status: "confirmed"
         }
       ];
+      console.log('Setting mock bookings:', mockBookings);
       setBookings(mockBookings);
       setLoading(false);
     }, 1000);
   };
 
   const handleStatusUpdate = (bookingId, newStatus) => {
+    console.log('handleStatusUpdate called:', { bookingId, newStatus });
+    
     const bookingToUpdate = bookings.find(b => b.id === bookingId);
+    console.log('Booking to update:', bookingToUpdate);
     
     if (newStatus === 'canceled') {
-      // Remove from main list when declined
-      setBookings(prev => prev.filter(booking => booking.id !== bookingId));
+      setBookings(prev => {
+        const updated = prev.filter(booking => booking.id !== bookingId);
+        console.log('After decline filter:', updated);
+        return updated;
+      });
       
-      // Dispatch custom event for declined bookings counter
       window.dispatchEvent(new CustomEvent('bookingDeclined', { 
         detail: { bookingId, booking: bookingToUpdate }
       }));
+    } else if (newStatus === 'confirmed') {
+      setBookings(prev => {
+        const updated = prev.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: 'confirmed' }
+            : booking
+        );
+        console.log('After approval update:', updated);
+        return updated;
+      });
     } else {
-      // Update status for approved bookings
       setBookings(prev => prev.map(booking => 
         booking.id === bookingId 
           ? { ...booking, status: newStatus }
@@ -104,39 +133,22 @@ export default function BookingRequests() {
       ));
     }
 
-    // API call
-    fetch(`/api/bookings/${bookingId}/status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ status: newStatus })
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to update booking status');
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Booking status updated:', data);
-    })
-    .catch(error => {
-      console.error('Error updating status:', error);
-      // Only refetch if there was an error, otherwise the optimistic update should work
-      if (newStatus !== 'canceled') {
-        fetchBookings();
-      }
-    });
+    // Close modal
+    setIsModalOpen(false);
+    setSelectedBooking(null);
+
+    // Simulate API call without affecting state
+    console.log('Simulating API call for booking:', bookingId, 'status:', newStatus);
   };
 
   const handleEditBooking = (booking) => {
+    console.log('Opening modal for:', booking);
     setSelectedBooking(booking);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
+    console.log('Closing modal');
     setIsModalOpen(false);
     setSelectedBooking(null);
   };
@@ -157,6 +169,9 @@ export default function BookingRequests() {
     );
   };
 
+  console.log('Current bookings state:', bookings);
+  console.log('Loading state:', loading);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -173,7 +188,6 @@ export default function BookingRequests() {
         Booking Requests
       </h2>
 
-      {/* Booking Cards - Filter out canceled bookings */}
       <div className="space-y-4">
         {bookings
           .filter(booking => booking.status !== 'canceled')
@@ -181,29 +195,28 @@ export default function BookingRequests() {
           <div key={booking.id} className={`card shadow-lg ${
             isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-100'
           }`}>
-            <div className="card-body">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                {/* Client Info */}
-                <div className="flex items-center gap-3">
-                  <div className="avatar placeholder">
+            <div className="card-body p-4">
+              <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 items-start lg:items-center">
+                <div className="lg:col-span-2 flex items-center gap-3">
+                  <div className="avatar placeholder flex-shrink-0">
                     <div className={`w-12 h-12 rounded-full ${
                       isDarkTheme ? 'bg-gray-700' : 'bg-primary text-primary-content'
                     }`}>
                       <span className="text-lg">{booking.client.name.charAt(0)}</span>
                     </div>
                   </div>
-                  <div>
-                    <h3 className={`font-semibold ${
+                  <div className="min-w-0 flex-1">
+                    <h3 className={`font-semibold text-sm lg:text-base truncate ${
                       isDarkTheme ? 'text-white' : 'text-base-content'
                     }`}>
                       {booking.client.name}
                     </h3>
-                    <p className={`text-sm ${
+                    <p className={`text-xs lg:text-sm truncate ${
                       isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
                     }`}>
                       {booking.client.email}
                     </p>
-                    <p className={`text-sm ${
+                    <p className={`text-xs lg:text-sm ${
                       isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
                     }`}>
                       {booking.client.phone}
@@ -211,46 +224,44 @@ export default function BookingRequests() {
                   </div>
                 </div>
 
-                {/* Date & Time */}
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-secondary" />
-                  <span className={`text-sm ${
+                <div className="flex items-center gap-2 min-w-0">
+                  <Calendar size={16} className="text-secondary flex-shrink-0" />
+                  <span className={`text-xs lg:text-sm truncate ${
                     isDarkTheme ? 'text-gray-300' : 'text-base-content'
                   }`}>
                     {booking.dateTime}
                   </span>
                 </div>
 
-                {/* Address */}
-                <div className="flex items-center gap-2">
-                  <MapPin size={16} className="text-secondary" />
-                  <span className={`text-sm ${
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin size={16} className="text-secondary flex-shrink-0" />
+                  <span className={`text-xs lg:text-sm truncate ${
                     isDarkTheme ? 'text-gray-300' : 'text-base-content'
                   }`}>
                     {booking.address}
                   </span>
                 </div>
 
-                {/* Package */}
-                <div className="flex items-center gap-2">
-                  <Package size={16} className="text-secondary" />
-                  <span className={`text-sm ${
+                <div className="flex items-center gap-2 min-w-0">
+                  <Package size={16} className="text-secondary flex-shrink-0" />
+                  <span className={`text-xs lg:text-sm truncate ${
                     isDarkTheme ? 'text-gray-300' : 'text-base-content'
                   }`}>
                     {booking.package.name} - {booking.package.duration}
                   </span>
                 </div>
 
-                {/* Status & Edit Button */}
-                <div className="flex items-center justify-between gap-2">
-                  {getStatusBadge(booking.status)}
+                <div className="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0">
+                  <div className="flex-shrink-0">
+                    {getStatusBadge(booking.status)}
+                  </div>
                   <button
                     onClick={() => handleEditBooking(booking)}
-                    className="btn btn-sm btn-outline"
+                    className="btn btn-sm btn-outline flex-shrink-0"
                     title="Edit booking"
                   >
                     <Edit size={14} />
-                    Edit
+                    <span className="hidden sm:inline">Edit</span>
                   </button>
                 </div>
               </div>
@@ -259,7 +270,6 @@ export default function BookingRequests() {
         ))}
       </div>
 
-      {/* Booking Preview Modal */}
       <BookingPreview
         booking={selectedBooking}
         isOpen={isModalOpen}

@@ -17,8 +17,13 @@ export default function BookingPreview({
       }
     }
     
+    // Update status first, then close modal
     onStatusUpdate(booking.id, status);
-    onClose();
+    
+    // Add a small delay to ensure state update completes
+    setTimeout(() => {
+      onClose();
+    }, 100);
   };
 
   if (!isOpen || !booking) return null;

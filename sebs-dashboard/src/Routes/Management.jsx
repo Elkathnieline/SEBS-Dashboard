@@ -11,7 +11,7 @@ export default function Management() {
     <div className={`min-h-screen p-6 transition-colors duration-300 ${
       isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
     }`}>
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-full mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
@@ -19,13 +19,13 @@ export default function Management() {
           }`}>
             <Settings size={24} className="text-white" />
           </div>
-          <div>
-            <h1 className={`text-3xl font-bold ${
+          <div className="flex-1 min-w-0">
+            <h1 className={`text-2xl lg:text-3xl font-bold ${
               isDarkTheme ? 'text-white' : 'text-base-content'
             }`}>
               Management
             </h1>
-            <p className={`${
+            <p className={`text-sm lg:text-base ${
               isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
             }`}>
               Manage bookings and business operations
@@ -34,10 +34,14 @@ export default function Management() {
         </div>
 
         {/* Booking Requests Section */}
-        <BookingRequests />
+        <div className="space-y-6">
+          <BookingRequests />
+        </div>
 
         {/* Declined Bookings Section */}
-        <DeclinedBookings />
+        <div className="space-y-6">
+          <DeclinedBookings />
+        </div>
       </div>
     </div>
   );
