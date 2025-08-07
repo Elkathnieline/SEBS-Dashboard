@@ -138,8 +138,8 @@ export default function Reports() {
               { label: "This month's bookings", value: monthlyBookings, color: "text-green-500" },
               { label: "This month's visits", value: monthlyVisits, color: "text-purple-500" },
             ].map(({ label, value, color }, i) => (
-              <div key={i} className={`card shadow-lg h-32 ${
-                isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
+              <div key={i} className={`card shadow-lg h-32 bg-error-content ${
+                isDarkTheme ? 'border border-gray-700' : ''
               }`}>
                 <div className="card-body p-4 flex flex-col justify-center h-full">
                   <h3 className={`text-sm font-medium mb-2 ${

@@ -42,7 +42,7 @@ export default function Sidebar() {
 
   const navigationItems = [
     {
-      to: "/",
+      to: "/dashboard", 
       icon: LayoutGrid,
       label: "Home"
     },

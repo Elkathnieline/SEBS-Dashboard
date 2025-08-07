@@ -65,7 +65,7 @@ export default function StatsCard({ type, value }) {
 
   return (
     <div className={`card shadow-lg transition-colors duration-300 ${
-      isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-200'
+      isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-error-content'
     }`}>
       <div className="card-body p-6">
         <div className="flex items-center justify-between">
