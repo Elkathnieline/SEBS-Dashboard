@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useState, useEffect, useContext } from "react";
 import { jwtDecode } from "jwt-decode";
-import { login as apiLogin, logout as apiLogout, refreshToken } from "../services/AuthServices";
+import { login as apiLogin } from "../services/AuthServices";
 
 const AuthContext = createContext();
 
@@ -36,7 +36,6 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    await apiLogout();
     applyToken(null);
   }
 
