@@ -29,9 +29,3 @@ export async function refreshToken() {
   return data.accessToken;
 }
 
-export async function logout() {
-  await fetch(`${API_BASE}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-}
