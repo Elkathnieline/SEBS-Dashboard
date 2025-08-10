@@ -24,7 +24,7 @@ export default function RightSidebar() {
         return;
       }
 
-      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_DEV_API_URL || "";
       const response = await fetch(`${apiUrl}/api/Analytics/booking-stats`, {
         headers: {
           Authorization: `Bearer ${token}`,

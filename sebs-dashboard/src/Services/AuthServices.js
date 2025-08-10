@@ -1,6 +1,6 @@
 // src/services/AuthServices.js
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_DEV_API_URL || "http://localhost:3000";
 
 export async function login(username, password) {
   const res = await fetch(`${API_BASE}/api/Auth/login`, {

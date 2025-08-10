@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, Clock, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
 import PropTypes from 'prop-types';
@@ -6,24 +6,63 @@ import PropTypes from 'prop-types';
 export default function BookingChart({ height = 252 }) {
   const { isDarkTheme } = useTheme();
   const [selectedYear, setSelectedYear] = useState('2025');
-  
-  // Sample data - replace with real data
-  const monthlyData = [
+  const [monthlyData, setMonthlyData] = useState([
     { month: 'Jan', accepted: 0, pending: 0 },
     { month: 'Feb', accepted: 0, pending: 0 },
     { month: 'Mar', accepted: 0, pending: 0 },
     { month: 'Apr', accepted: 0, pending: 0 },
     { month: 'May', accepted: 0, pending: 0 },
     { month: 'Jun', accepted: 0, pending: 0 },
-    { month: 'Jul', accepted: 1, pending: 0 },
-    { month: 'Aug', accepted: 1, pending: 1 },
+    { month: 'Jul', accepted: 0, pending: 0 },
+    { month: 'Aug', accepted: 0, pending: 0 },
     { month: 'Sep', accepted: 0, pending: 0 },
     { month: 'Oct', accepted: 0, pending: 0 },
     { month: 'Nov', accepted: 0, pending: 0 },
     { month: 'Dec', accepted: 0, pending: 0 },
-  ];
+  ]);
 
-  const maxValue = Math.max(...monthlyData.map(d => d.accepted + d.pending)) || 1;
+  useEffect(() => {
+    const controller = new AbortController();
+    const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_DEV_API_URL || "";
+    const token = sessionStorage.getItem('backend-token');
+
+    fetch(`${API_BASE}/api/Analytics/booking-chart?year=${selectedYear}`, {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      signal: controller.signal,
+      credentials: 'include',
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load booking chart');
+        return res.json();
+      })
+      .then((data) => {
+        // Map API { month, green, purple } -> component { month, accepted, pending }
+        const mapped = Array.isArray(data)
+          ? data.map((d) => ({
+              month: d.month,
+              accepted: Number(d.green || 0),
+              pending: Number(d.purple || 0),
+            }))
+          : [];
+        setMonthlyData((prev) =>
+          mapped.length ? mapped : prev
+        );
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          // Optionally surface error (toast/log)
+          // console.error(err);
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedYear]);
+
+  const maxValue =
+    Math.max(...monthlyData.map((d) => d.accepted + d.pending)) || 1;
 
   // Dynamically adjust chart bar height based on container height
   const chartBarHeight = height > 350 ? 'h-48' : 'h-24';
