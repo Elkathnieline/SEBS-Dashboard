@@ -1,21 +1,32 @@
-import { useState, useEffect } from 'react';
-import { Calendar, MapPin, Package, XCircle, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Calendar, MapPin, Package, XCircle, Trash2, RefreshCw, Loader2 } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
+import { 
+  fetchBookingRequests, 
+  transformBookingData, 
+  enumMapper 
+} from '../../Services/BookingService.js';
 
 export default function DeclinedBookings() {
   const { isDarkTheme } = useTheme();
   const [declinedBookings, setDeclinedBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [enumsLoaded, setEnumsLoaded] = useState(false);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    fetchDeclinedBookings();
+    if (!hasInitialized.current) {
+      initializeData();
+      hasInitialized.current = true;
+    }
     
     // Listen for declined bookings from BookingRequests
     const handleBookingDeclined = (event) => {
       const { booking } = event.detail;
       setDeclinedBookings(prev => [
         ...prev,
-        { ...booking, status: 'canceled', declinedAt: new Date().toISOString() }
+        { ...booking, status: 'declined', declinedAt: new Date().toISOString() }
       ]);
     };
 
@@ -26,46 +37,82 @@ export default function DeclinedBookings() {
     };
   }, []);
 
-  const fetchDeclinedBookings = () => {
+  const initializeData = async () => {
     setLoading(true);
+    setError(null);
     
-    // API call to fetch declined bookings
-    fetch('/api/bookings?status=canceled', {
-      method: 'GET',
+    try {
+      // Load enums first
+      const controller = new AbortController();
+      const enumsSuccess = await enumMapper.loadEnums(controller.signal);
+      
+      if (!enumsSuccess) {
+        throw new Error('Failed to load enum data');
+      }
+      
+      setEnumsLoaded(true);
+      
+      // Then load declined bookings
+      await fetchDeclinedBookings(controller.signal);
+      
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        setError("Failed to initialize declined booking data");
+        console.error("Initialization error:", err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDeclinedBookings = (signal) => {
+    const token = sessionStorage.getItem("backend-token");
+    const API_BASE = import.meta.env.VITE_DEV_API_URL || import.meta.env.VITE_API_URL;
+    
+    return fetch(`${API_BASE}/api/admin/booking?status=4`, {
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: "include",
+      signal,
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch declined bookings');
-      }
-      return response.json();
+    .then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch declined bookings");
+      return res.json();
     })
     .then(data => {
-      setDeclinedBookings(data);
-      setLoading(false);
+      const transformedData = transformBookingData(data);
+      setDeclinedBookings(transformedData);
     })
-    .catch(error => {
-      console.error('Error fetching declined bookings:', error);
-      // Mock data for now
-      setTimeout(() => {
-        setDeclinedBookings([]);
-        setLoading(false);
-      }, 1000);
+    .catch(err => {
+      if (err.name !== "AbortError") {
+        setError("Failed to load declined bookings");
+        console.error("Fetch error:", err);
+      }
     });
+  };
+
+  const handleRefresh = () => {
+    const controller = new AbortController();
+    setError(null);
+    fetchDeclinedBookings(controller.signal);
   };
 
   const handleDeleteDeclined = (bookingId) => {
     if (window.confirm('Are you sure you want to permanently delete this declined booking?')) {
       setDeclinedBookings(prev => prev.filter(booking => booking.id !== bookingId));
       
+      const token = sessionStorage.getItem("backend-token");
+      const API_BASE = import.meta.env.VITE_DEV_API_URL || import.meta.env.VITE_API_URL;
+      
       // API call to delete
-      fetch(`/api/bookings/${bookingId}`, {
+      fetch(`${API_BASE}/api/admin/booking/${bookingId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
       })
       .then(response => {
         if (!response.ok) {
@@ -75,7 +122,9 @@ export default function DeclinedBookings() {
       })
       .catch(error => {
         console.error('Error deleting booking:', error);
-        fetchDeclinedBookings();
+        // Revert the optimistic update on failure
+        const controller = new AbortController();
+        fetchDeclinedBookings(controller.signal);
       });
     }
   };
@@ -83,7 +132,19 @@ export default function DeclinedBookings() {
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
+        <Loader2 className="animate-spin mr-2" size={24} />
+        <span>Loading declined bookings...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-error">
+        <span>{error}</span>
+        <button className="btn btn-sm" onClick={initializeData}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -110,6 +171,14 @@ export default function DeclinedBookings() {
             </p>
           </div>
         </div>
+        <button 
+          className="btn btn-ghost btn-sm" 
+          onClick={handleRefresh}
+          disabled={loading}
+        >
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
       {declinedBookings.length === 0 ? (
@@ -125,27 +194,27 @@ export default function DeclinedBookings() {
             <div key={booking.id} className={`card shadow-lg border-l-4 border-l-error ${
               isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-base-100'
             }`}>
-              <div className="card-body">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+              <div className="card-body p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 items-start lg:items-center">
                   {/* Client Info */}
-                  <div className="flex items-center gap-3">
-                    <div className="avatar placeholder">
+                  <div className="lg:col-span-2 flex items-center gap-3">
+                    <div className="avatar placeholder flex-shrink-0">
                       <div className="w-12 h-12 rounded-full bg-error text-error-content">
                         <span className="text-lg">{booking.client.name.charAt(0)}</span>
                       </div>
                     </div>
-                    <div>
-                      <h3 className={`font-semibold ${
+                    <div className="min-w-0 flex-1">
+                      <h3 className={`font-semibold text-sm lg:text-base truncate ${
                         isDarkTheme ? 'text-white' : 'text-base-content'
                       }`}>
                         {booking.client.name}
                       </h3>
-                      <p className={`text-sm ${
+                      <p className={`text-xs lg:text-sm truncate ${
                         isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
                       }`}>
                         {booking.client.email}
                       </p>
-                      <p className={`text-sm ${
+                      <p className={`text-xs lg:text-sm ${
                         isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
                       }`}>
                         {booking.client.phone}
@@ -154,9 +223,9 @@ export default function DeclinedBookings() {
                   </div>
 
                   {/* Date & Time */}
-                  <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-error" />
-                    <span className={`text-sm ${
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Calendar size={16} className="text-error flex-shrink-0" />
+                    <span className={`text-xs lg:text-sm truncate ${
                       isDarkTheme ? 'text-gray-300' : 'text-base-content'
                     }`}>
                       {booking.dateTime}
@@ -164,9 +233,9 @@ export default function DeclinedBookings() {
                   </div>
 
                   {/* Address */}
-                  <div className="flex items-center gap-2">
-                    <MapPin size={16} className="text-error" />
-                    <span className={`text-sm ${
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MapPin size={16} className="text-error flex-shrink-0" />
+                    <span className={`text-xs lg:text-sm truncate ${
                       isDarkTheme ? 'text-gray-300' : 'text-base-content'
                     }`}>
                       {booking.address}
@@ -174,27 +243,54 @@ export default function DeclinedBookings() {
                   </div>
 
                   {/* Package */}
-                  <div className="flex items-center gap-2">
-                    <Package size={16} className="text-error" />
-                    <span className={`text-sm ${
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package size={16} className="text-error flex-shrink-0" />
+                    <div className={`text-xs lg:text-sm ${
                       isDarkTheme ? 'text-gray-300' : 'text-base-content'
                     }`}>
-                      {booking.package.name} - {booking.package.duration}
-                    </span>
+                      <div className="truncate">{booking.package.name}</div>
+                      <div className="text-[10px] text-base-content/60">{booking.package.duration}</div>
+                    </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-end gap-2">
-                    <div className="badge badge-error">Declined</div>
+                  <div className="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0">
+                    <div className="flex-shrink-0">
+                      <div className="badge badge-error">
+                        {booking.statusDisplay || 'Declined'}
+                      </div>
+                    </div>
                     <button
                       onClick={() => handleDeleteDeclined(booking.id)}
-                      className="btn btn-sm btn-error btn-outline"
+                      className="btn btn-sm btn-error btn-outline flex-shrink-0"
                       title="Delete permanently"
                     >
                       <Trash2 size={14} />
+                      <span className="hidden sm:inline">Delete</span>
                     </button>
                   </div>
                 </div>
+
+                {/* Additional Info Row */}
+                {booking.reference && (
+                  <div className="mt-3 pt-3 border-t border-base-300">
+                    <div className="flex flex-wrap gap-4 text-xs">
+                      <span className={`${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
+                        Reference: <span className="font-mono">{booking.reference}</span>
+                      </span>
+                      {booking.bookingDate && (
+                        <span className={`${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
+                          Booked: {booking.bookingDate}
+                        </span>
+                      )}
+                      {booking.package.totalPrice > 0 && (
+                        <span className={`${isDarkTheme ? 'text-gray-400' : 'text-base-content/60'}`}>
+                          Value: ${booking.package.totalPrice}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { Calendar, MapPin, Package, Edit } from 'lucide-react';
+import { Calendar, MapPin, Package, Edit, Loader2, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
 import BookingPreview from './BookingPreview.jsx';
+import { 
+  fetchBookingRequests, 
+  updateBookingStatus, 
+  transformBookingData, 
+  enumMapper 
+} from '../../Services/BookingService.js';
 
 export default function BookingRequests() {
   const { isDarkTheme } = useTheme();
@@ -9,122 +15,73 @@ export default function BookingRequests() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [enumsLoaded, setEnumsLoaded] = useState(false);
   const hasInitialized = useRef(false);
 
   useEffect(() => {
-    console.log('BookingRequests useEffect triggered');
     if (!hasInitialized.current) {
-      console.log('First time initialization');
-      fetchBookings();
+      initializeData();
       hasInitialized.current = true;
-    } else {
-      console.log('Preventing re-fetch - component already initialized');
     }
   }, []);
 
-  // Add debugging for component re-renders
-  useEffect(() => {
-    console.log('BookingRequests re-rendered');
-  });
-
-  const fetchBookings = () => {
-    console.log('fetchBookings called');
+  const initializeData = async () => {
     setLoading(true);
-    setTimeout(() => {
-      const mockBookings = [
-        {
-          id: 1,
-          client: {
-            name: "Gab Cruz",
-            email: "sdhwhfud@gmail.com",
-            phone: "212345678"
-          },
-          dateTime: "2:00 PM, Tue, 13 Nov",
-          address: "AGsdgadsdg",
-          package: {
-            name: "Package A",
-            duration: "1 hour"
-          },
-          status: "confirmed"
-        },
-        {
-          id: 2,
-          client: {
-            name: "Jeremhie",
-            email: "sdhwhfud@gmail.com",
-            phone: "212345678"
-          },
-          dateTime: "4:00 PM, Tue, 12 Nov",
-          address: "wdgjwedfef",
-          package: {
-            name: "Package B",
-            duration: "3 hours"
-          },
-          status: "pending"
-        },
-        {
-          id: 3,
-          client: {
-            name: "Jomar",
-            email: "sdhwhfud@gmail.com",
-            phone: "212345678"
-          },
-          dateTime: "3:00 PM, Tue, 11 Nov",
-          address: "sfdfd",
-          package: {
-            name: "Package D",
-            duration: "4 hours"
-          },
-          status: "confirmed"
-        },
-        {
-          id: 4,
-          client: {
-            name: "Faith",
-            email: "sdhwhfud@gmail.com",
-            phone: "212345678"
-          },
-          dateTime: "1:00 PM, Tue, 10 Nov",
-          address: "dsfddf",
-          package: {
-            name: "Package A",
-            duration: "2 hours"
-          },
-          status: "confirmed"
-        }
-      ];
-      console.log('Setting mock bookings:', mockBookings);
-      setBookings(mockBookings);
+    setError(null);
+    
+    try {
+      // Load enums first
+      const controller = new AbortController();
+      const enumsSuccess = await enumMapper.loadEnums(controller.signal);
+      
+      if (!enumsSuccess) {
+        throw new Error('Failed to load enum data');
+      }
+      
+      setEnumsLoaded(true);
+      
+      // Then load bookings
+      await fetchBookings(controller.signal);
+      
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        setError("Failed to initialize booking data");
+        console.error("Initialization error:", err);
+      }
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  const fetchBookings = async (signal) => {
+    try {
+      const data = await fetchBookingRequests(signal);
+      const transformedData = transformBookingData(data);
+      setBookings(transformedData);
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        setError("Failed to load booking requests");
+        console.error("Fetch error:", err);
+      }
+    }
+  };
+
+  const handleRefresh = () => {
+    const controller = new AbortController();
+    setError(null);
+    fetchBookings(controller.signal);
   };
 
   const handleStatusUpdate = (bookingId, newStatus) => {
-    console.log('handleStatusUpdate called:', { bookingId, newStatus });
-    
     const bookingToUpdate = bookings.find(b => b.id === bookingId);
-    console.log('Booking to update:', bookingToUpdate);
     
-    if (newStatus === 'canceled') {
-      setBookings(prev => {
-        const updated = prev.filter(booking => booking.id !== bookingId);
-        console.log('After decline filter:', updated);
-        return updated;
-      });
-      
+    // Optimistic update
+    if (newStatus === 'cancelled') {
+      setBookings(prev => prev.filter(booking => booking.id !== bookingId));
       window.dispatchEvent(new CustomEvent('bookingDeclined', { 
         detail: { bookingId, booking: bookingToUpdate }
       }));
-    } else if (newStatus === 'confirmed') {
-      setBookings(prev => {
-        const updated = prev.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'confirmed' }
-            : booking
-        );
-        console.log('After approval update:', updated);
-        return updated;
-      });
     } else {
       setBookings(prev => prev.map(booking => 
         booking.id === bookingId 
@@ -137,30 +94,54 @@ export default function BookingRequests() {
     setIsModalOpen(false);
     setSelectedBooking(null);
 
-    // Simulate API call without affecting state
-    console.log('Simulating API call for booking:', bookingId, 'status:', newStatus);
+    // API call - convert status name to enum value
+    const statusValue = enumMapper.getStatusValue(newStatus);
+    if (statusValue === null) {
+      console.error('Unknown status:', newStatus);
+      return;
+    }
+
+    const controller = new AbortController();
+    updateBookingStatus(bookingId, statusValue, controller.signal)
+      .catch((err) => {
+        // Revert optimistic update on failure
+        if (newStatus === 'cancelled') {
+          setBookings(prev => [...prev, bookingToUpdate]);
+        } else {
+          setBookings(prev => prev.map(booking => 
+            booking.id === bookingId 
+              ? bookingToUpdate
+              : booking
+          ));
+        }
+        console.error("Status update failed:", err);
+        setError("Failed to update booking status");
+      });
   };
 
   const handleEditBooking = (booking) => {
-    console.log('Opening modal for:', booking);
     setSelectedBooking(booking);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
-    console.log('Closing modal');
     setIsModalOpen(false);
     setSelectedBooking(null);
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, statusDisplay) => {
     const statusConfig = {
-      confirmed: { class: 'badge-success', text: 'Confirmed' },
-      pending: { class: 'badge-warning', text: 'Pending' },
-      canceled: { class: 'badge-error', text: 'Canceled' }
+      awaitingconfirmation: { class: 'badge-warning', text: statusDisplay || 'Awaiting Confirmation' },
+      confirmed: { class: 'badge-success', text: statusDisplay || 'Confirmed' },
+      cancelled: { class: 'badge-error', text: statusDisplay || 'Cancelled' },
+      completed: { class: 'badge-info', text: statusDisplay || 'Completed' },
+      noshow: { class: 'badge-error', text: statusDisplay || 'No Show' }
     };
     
-    const config = statusConfig[status] || { class: 'badge-ghost', text: status };
+    const config = statusConfig[status.toLowerCase()] || { 
+      class: 'badge-ghost', 
+      text: statusDisplay || status 
+    };
     
     return (
       <div className={`badge ${config.class}`}>
@@ -169,28 +150,47 @@ export default function BookingRequests() {
     );
   };
 
-  console.log('Current bookings state:', bookings);
-  console.log('Loading state:', loading);
-
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
+        <Loader2 className="animate-spin mr-2" size={24} />
+        <span>Loading booking requests...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-error">
+        <span>{error}</span>
+        <button className="btn btn-sm" onClick={initializeData}>
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h2 className={`text-2xl font-bold ${
-        isDarkTheme ? 'text-white' : 'text-base-content'
-      }`}>
-        Booking Requests
-      </h2>
+      <div className="flex justify-between items-center">
+        <h2 className={`text-2xl font-bold ${
+          isDarkTheme ? 'text-white' : 'text-base-content'
+        }`}>
+          Booking Requests
+        </h2>
+        <button 
+          className="btn btn-ghost btn-sm" 
+          onClick={handleRefresh}
+          disabled={loading}
+        >
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </div>
 
       <div className="space-y-4">
         {bookings
-          .filter(booking => booking.status !== 'canceled')
+          .filter(booking => booking.status !== 'cancelled')
           .map((booking) => (
           <div key={booking.id} className={`card shadow-lg ${
             isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-100'
@@ -244,16 +244,17 @@ export default function BookingRequests() {
 
                 <div className="flex items-center gap-2 min-w-0">
                   <Package size={16} className="text-secondary flex-shrink-0" />
-                  <span className={`text-xs lg:text-sm truncate ${
+                  <div className={`text-xs lg:text-sm ${
                     isDarkTheme ? 'text-gray-300' : 'text-base-content'
                   }`}>
-                    {booking.package.name} - {booking.package.duration}
-                  </span>
+                    <div className="truncate">{booking.package.name}</div>
+                    <div className="text-[10px] text-base-content/60">{booking.package.duration}</div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0">
                   <div className="flex-shrink-0">
-                    {getStatusBadge(booking.status)}
+                    {getStatusBadge(booking.status, booking.statusDisplay)}
                   </div>
                   <button
                     onClick={() => handleEditBooking(booking)}
@@ -269,6 +270,12 @@ export default function BookingRequests() {
           </div>
         ))}
       </div>
+
+      {bookings.length === 0 && !loading && (
+        <div className="text-center py-8">
+          <p className="text-base-content/60">No booking requests found</p>
+        </div>
+      )}
 
       <BookingPreview
         booking={selectedBooking}
