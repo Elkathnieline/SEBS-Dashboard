@@ -69,7 +69,7 @@ export default function DeclinedBookings() {
     const token = sessionStorage.getItem("backend-token");
     const API_BASE = import.meta.env.VITE_DEV_API_URL || import.meta.env.VITE_API_URL;
     
-    return fetch(`${API_BASE}/api/admin/booking?status=4`, {
+    return fetch(`${API_BASE}/api/admin/booking?status=3`, {
       method: "GET",
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -116,8 +116,10 @@ export default function BookingPreview({
               </p>
             </div>
 
-            {/* Actions for pending bookings */}
-            {booking.status === 'pending' && (
+       
+
+            {/* Actions for awaiting confirmation bookings */}
+            {booking.status === 'awaitingconfirmation' && (
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => handleStatusUpdate('confirmed')}
@@ -127,7 +129,7 @@ export default function BookingPreview({
                   Approve Booking
                 </button>
                 <button
-                  onClick={() => handleStatusUpdate('canceled')}
+                  onClick={() => handleStatusUpdate('declined')}
                   className="btn btn-error flex-1"
                 >
                   <X size={16} />
@@ -147,7 +149,7 @@ export default function BookingPreview({
                 </div>
                 <div className="flex justify-center">
                   <button
-                    onClick={() => handleStatusUpdate('canceled')}
+                    onClick={() => handleStatusUpdate('declined')}
                     className="btn btn-error"
                   >
                     <X size={16} />
@@ -157,8 +159,8 @@ export default function BookingPreview({
               </div>
             )}
 
-            {/* Status display for cancelled bookings */}
-            {booking.status === 'canceled' && (
+            {/* Status display for declined bookings */}
+            {booking.status === 'declined' && (
               <div className="text-center">
                 <div className="badge badge-error badge-lg">
                   <X size={16} className="mr-2" />

@@ -129,62 +129,93 @@ export const enumMapper = new EnumMapper();
 // Transform API booking data to component format
 export function transformBookingData(apiData) {
   return apiData.map(booking => {
-    // Get enum display names
+    // Handle null/undefined eventDetails
+    const eventDetails = booking.eventDetails || {};
+    
+    // Get enum display names with fallbacks
     const statusInfo = enumMapper.getBookingStatus(booking.status);
-    const eventTypeInfo = enumMapper.getEventType(booking.eventDetails.eventType);
+    const eventTypeInfo = enumMapper.getEventType(eventDetails.eventType || 0);
 
-    // Format date to match existing format: "2:00 PM, Tue, 13 Nov"
-    const eventDate = new Date(booking.eventDetails.eventDate);
-    const dateTime = eventDate.toLocaleString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short'
-    });
+    // Format date with fallback
+    let dateTime = 'No date set';
+    if (eventDetails.eventDate) {
+      try {
+        const eventDate = new Date(eventDetails.eventDate);
+        dateTime = eventDate.toLocaleString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short'
+        });
+      } catch (error) {
+        console.warn('Invalid event date:', eventDetails.eventDate);
+        dateTime = 'Invalid date';
+      }
+    }
 
-    // Process event services - create a summary of services
-    const services = booking.eventDetails.eventServices || [];
+    // Process event services with fallback
+    const services = eventDetails.eventServices || [];
     const servicesSummary = services.length > 0 
       ? `${services.length} service${services.length !== 1 ? 's' : ''}`
       : 'No services';
 
-    // Calculate total price from services
+    // Calculate total price from services with fallbacks
     const totalPrice = services.reduce((sum, service) => {
+      if (!service) return sum;
       return sum + (service.customPrice || service.serviceBasePrice || 0) * (service.quantity || 1);
     }, 0);
 
-    // Format booking date for display
-    const bookingDate = new Date(booking.bookingDate);
-    const formattedBookingDate = bookingDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    // Format booking date for display with fallback
+    let formattedBookingDate = 'Unknown';
+    if (booking.bookingDate) {
+      try {
+        const bookingDate = new Date(booking.bookingDate);
+        formattedBookingDate = bookingDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } catch (error) {
+        console.warn('Invalid booking date:', booking.bookingDate);
+        formattedBookingDate = 'Invalid date';
+      }
+    }
+
+    // Use enum status directly - no more pending mapping
+    let mappedStatus = statusInfo.name ? statusInfo.name.toLowerCase() : 'unknown';
 
     return {
-      id: booking.bookingID,
-      reference: booking.bookingReference,
+      id: booking.bookingID || booking.id || 0,
+      reference: booking.bookingReference || 'No reference',
       bookingDate: formattedBookingDate,
       client: {
-        name: booking.customerName,
-        email: booking.customerEmail,
-        phone: booking.customerPhone
+        name: booking.customerName || 'Unknown customer',
+        email: booking.customerEmail || 'No email',
+        phone: booking.customerPhone || 'No phone'
       },
       dateTime: dateTime,
-      address: booking.eventDetails.location,
-      eventType: eventTypeInfo.displayName,
+      address: eventDetails.location || 'No location',
+      eventType: eventTypeInfo.displayName || 'Unknown type',
       package: {
-        name: booking.eventDetails.name || 'Custom Event',
+        name: eventDetails.name || 'Custom Event',
         duration: servicesSummary,
         totalPrice: totalPrice
       },
-      status: statusInfo.name.toLowerCase(), // Convert to lowercase for existing component logic
-      statusDisplay: statusInfo.displayName,
-      notes: booking.eventDetails.notes,
-      approvedBy: booking.approvedByName,
-      approvedDate: booking.approvedDate ? new Date(booking.approvedDate).toLocaleDateString('en-US') : null,
+      status: mappedStatus,
+      statusDisplay: statusInfo.displayName || 'Unknown status',
+      notes: eventDetails.notes || '',
+      approvedBy: booking.approvedByName || null,
+      approvedDate: booking.approvedDate ? 
+        (() => {
+          try {
+            return new Date(booking.approvedDate).toLocaleDateString('en-US');
+          } catch (error) {
+            console.warn('Invalid approved date:', booking.approvedDate);
+            return null;
+          }
+        })() : null,
       // Keep original data for modal/preview
       originalData: booking,
       services: services
