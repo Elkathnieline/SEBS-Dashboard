@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { BarChart3, Calendar } from "lucide-react";
 import { useTheme } from "../Contexts/ThemeContext.jsx";
-import StatsCard from "../Components/Home/StatsCard.jsx";
 import BookingChart from "../Components/Home/BookingChart.jsx";
+import AnalyticsService from "../Services/AnalyticsService.js";
 
 export default function Reports() {
   const { isDarkTheme } = useTheme();
-  const [bookings, setBookings] = useState(182);
-  const [visits, setVisits] = useState(400);
-  const [monthlyBookings, setMonthlyBookings] = useState(8);
-  const [monthlyVisits, setMonthlyVisits] = useState(87);
+  const [bookings, setBookings] = useState(0);
+  const [visits, setVisits] = useState(0);
+  const [monthlyBookings, setMonthlyBookings] = useState(0);
+  const [monthlyVisits, setMonthlyVisits] = useState(0);
+  const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState("year");
@@ -17,43 +18,29 @@ export default function Reports() {
   useEffect(() => {
     const token = sessionStorage.getItem("backend-token");
     if (!token) {
+      setError("Authentication required");
       setLoading(false);
       return;
     }
 
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    setLoading(true);
+    setError(null);
 
-    Promise.all([
-      fetch(`${apiUrl}/api/Analytics/total-bookings`, {
-        headers: { Authorization: `Bearer ${token}` },
+    AnalyticsService.fetchAllAnalytics(dateRange)
+      .then(([totalBookings, totalVisits, monthlyBookingsData, monthlyVisitsData, chartData]) => {
+        setBookings(totalBookings);
+        setVisits(totalVisits);
+        setMonthlyBookings(monthlyBookingsData);
+        setMonthlyVisits(monthlyVisitsData);
+        setChartData(chartData);
       })
-        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 182 })))
-        .then((data) => setBookings(data.total ?? 182))
-        .catch(() => setBookings(182)),
-
-      fetch(`${apiUrl}/api/Analytics/site-visits`, {
-        headers: { Authorization: `Bearer ${token}` },
+      .catch((err) => {
+        console.error('Error loading analytics:', err);
+        setError("Failed to load analytics data");
       })
-        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 400 })))
-        .then((data) => setVisits(data.total ?? 400))
-        .catch(() => setVisits(400)),
-
-      fetch(`${apiUrl}/api/Analytics/monthly-bookings`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 8 })))
-        .then((data) => setMonthlyBookings(data.total ?? 8))
-        .catch(() => setMonthlyBookings(8)),
-
-      fetch(`${apiUrl}/api/Analytics/site-visits`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => (res.ok ? res.json() : Promise.resolve({ total: 87 })))
-        .then((data) => setMonthlyVisits(data.total ?? 87))
-        .catch(() => setMonthlyVisits(87)),
-    ])
-      .catch((err) => setError("Failed to load analytics data"))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+      });
   }, [dateRange]);
 
   if (loading) {
@@ -138,8 +125,8 @@ export default function Reports() {
               { label: "This month's bookings", value: monthlyBookings, color: "text-green-500" },
               { label: "This month's visits", value: monthlyVisits, color: "text-purple-500" },
             ].map(({ label, value, color }, i) => (
-              <div key={i} className={`card shadow-lg h-32 bg-error-content ${
-                isDarkTheme ? 'border border-gray-700' : ''
+              <div key={i} className={`card shadow-lg h-32 ${
+                isDarkTheme ? 'bg-gray-800 border border-gray-700' : 'bg-base-100'
               }`}>
                 <div className="card-body p-4 flex flex-col justify-center h-full">
                   <h3 className={`text-sm font-medium mb-2 ${
@@ -147,7 +134,7 @@ export default function Reports() {
                   }`}>
                     {label}
                   </h3>
-                  <p className={`text-3xl font-bold ${color}`}>{value}</p>
+                  <p className={`text-3xl font-bold ${color}`}>{value.toLocaleString()}</p>
                 </div>
               </div>
             ))}
@@ -155,7 +142,7 @@ export default function Reports() {
 
           {/* Chart - Percentage of viewport height */}
           <div className="flex-shrink-0" style={{ height: '50vh' }}>
-            <BookingChart height="100%" />
+            <BookingChart height="100%" data={chartData} />
           </div>
         </div>
 

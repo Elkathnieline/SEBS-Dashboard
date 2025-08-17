@@ -26,7 +26,7 @@ export default function Dashboard() {
         .then(data => setBookings(data.total ?? 0))
         .catch(() => setBookings(0)),
 
-      fetch(`${apiUrl}/api/Analytics/site-visits`, {
+      fetch(`${apiUrl}/api/Analytics/total-site-visits`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(res => (res.ok ? res.json() : Promise.resolve({ total: 0 })))
