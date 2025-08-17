@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useState, useEffect, useContext } from "react";
 import { jwtDecode } from "jwt-decode";
-import { login as apiLogin, logout as apiLogout, refreshToken } from "../services/AuthServices";
+import { login as apiLogin } from "../Services/AuthServices";
 
 const AuthContext = createContext();
 
@@ -28,17 +28,18 @@ export function AuthProvider({ children }) {
   }
 
   async function login(username, password) {
-    const { accessToken: token, user: userData } = await apiLogin(username, password);
+    const result = await apiLogin(username, password);
+    const token = result.token;
+    if (!token) throw new Error("No token received");
     applyToken(token);
-    return userData;
+    return true; 
   }
 
   async function logout() {
-    await apiLogout();
     applyToken(null);
   }
 
-  const isAdmin = () => user?.role === "admin";
+  const isAdmin = () => user?.role === "Admin";
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAdmin }}>

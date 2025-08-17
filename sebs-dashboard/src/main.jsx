@@ -1,38 +1,58 @@
-import { StrictMode } from "react";
+import React, { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import {
   createBrowserRouter,
-  createRoutesFromElements,
   RouterProvider,
+  createRoutesFromElements,
   Route,
+  Navigate,
 } from "react-router-dom";
-
-import { AuthProvider } from "./context/AuthContext";
 import "./App.css";
-import ErrorPage from "./ErrorPage.jsx";
 
+// Import ThemeProvider
+import { ThemeProvider } from "./Contexts/ThemeContext.jsx";
+
+// Import your components
 import Root from "./Routes/Root.jsx";
-import RequireAuth from "./Components/requireAuth.jsx";
-import Login from "./Routes/Login.jsx";
 import Dashboard from "./Routes/Dashboard.jsx";
+import Settings from "./Routes/Settings.jsx";
+import Management from "./Routes/Management.jsx";
+import Reports from "./Routes/Reports.jsx";
+import Gallery from "./Routes/Gallery.jsx";
+import RequireAuth from "./Components/Security/requireAuth.jsx";
+import Login from "./Routes/Login.jsx";
+import ErrorPage from "./ErrorPage.jsx";
+import { AuthProvider } from "./Contexts/AuthContext.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="/" element={<Root />} errorElement={<ErrorPage />}>
-      <Route index element={<Login />} />
+    <>
+      {/* Standalone login route without Root layout */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Main app routes with Root layout */}
       <Route element={<RequireAuth />}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="/" element={<Root />} errorElement={<ErrorPage />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="gallery" element={<Gallery />} />
+          <Route path="management" element={<Management />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="*" element={<ErrorPage />} />
+        </Route>
       </Route>
-      <Route path="*" element={<ErrorPage />} />
-    </Route>
+    </>
   )
 );
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
     <AuthProvider>
+      <ThemeProvider>
       <RouterProvider router={router} />
+      </ThemeProvider>
     </AuthProvider>
-  </React.StrictMode>
+  </StrictMode>
 );
