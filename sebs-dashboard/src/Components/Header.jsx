@@ -6,34 +6,9 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [messages, setMessages] = useState([]);
 
-  const sampleMessages = [
-    { id: 1, sender: 'Client A', message: 'Booking confirmation needed', time: '10 minutes ago', read: false },
-    { id: 2, sender: 'Client B', message: 'Follow-up required', time: '30 minutes ago', read: false }
-  ];
+  
 
-  useEffect(() => {
-    fetchMessages();
-  }, []);
 
-  const fetchMessages = () => {
-    const token = sessionStorage.getItem("backend-token");
-    if (!token) {
-      setMessages(sampleMessages);
-      return;
-    }
-
-    fetch('http://localhost:8000/api/messages', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('Failed to fetch messages');
-        return response.json();
-      })
-      .then((data) => setMessages(data))
-      .catch(() => setMessages(sampleMessages));
-  };
 
   const handleSearch = (e) => {
     e.preventDefault();

@@ -9,12 +9,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../Contexts/ThemeContext.jsx";
 import BookingPreview from "./BookingPreview.jsx";
-import {
-  fetchBookingRequests,
-  transformBookingData,
-  enumMapper,
-  updateBookingStatus,
-} from "../../Services/BookingService.js";
+import { bookingService } from "../../Services/BookingService.js";
+import { enumMapper } from "../../Utils/EnumMapper.js";
+import { transformBookingData } from "../../Utils/BookingTransformer.js";
 
 export default function BookingRequests() {
   const { isDarkTheme } = useTheme();
@@ -48,7 +45,7 @@ export default function BookingRequests() {
 
     // Load enums first
     enumMapper
-      .loadEnums()
+      .loadEnums(bookingService)
       .then((enumsSuccess) => {
         if (!enumsSuccess) {
           throw new Error("Failed to load enum data");
@@ -65,9 +62,9 @@ export default function BookingRequests() {
 
   const fetchBookings = () => {
     console.log("fetchBookings called");
-    const controller = new AbortController();
 
-    return fetchBookingRequests(controller.signal)
+    return bookingService
+      .fetchBookingRequests()
       .then((data) => {
         console.log("Raw API data:", data);
         // Filter out declined bookings (status 3) and transform data
@@ -139,8 +136,8 @@ export default function BookingRequests() {
     setSelectedBooking(null);
 
     // Real API call
-    const controller = new AbortController();
-    updateBookingStatus(bookingId, numericStatus, controller.signal)
+    bookingService
+      .updateBookingStatus(bookingId, numericStatus)
       .then((response) => {
         console.log("Status update successful:", response);
       })
@@ -172,29 +169,20 @@ export default function BookingRequests() {
   const getStatusBadge = (status) => {
     const statusConfig = {
       confirmed: { class: "badge-success", text: "Confirmed" },
-      awaitingconfirmation: { class: "badge-warning", text: "Awaiting Confirmation" },
-      canceled: { class: "badge-error", text: "Canceled" },
+      "awaiting confirmation": { class: "badge-warning", text: "Pending" },
       cancelled: { class: "badge-error", text: "Cancelled" },
       declined: { class: "badge-error", text: "Declined" },
-      completed: { class: "badge-success", text: "Completed" },
-      noshow: { class: "badge-error", text: "No Show" },
     };
 
-    const config = statusConfig[status] || {
-      class: "badge-ghost",
-      text: status,
-    };
-
+    const config = statusConfig[status] || { class: "badge-ghost", text: status };
     return <div className={`badge ${config.class}`}>{config.text}</div>;
   };
 
-  console.log("Current bookings state:", bookings);
-  console.log("Loading state:", loading);
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
+      <div className="flex justify-center items-center py-12">
+        <div className="loading loading-spinner loading-lg"></div>
+        <span className="ml-4">Loading booking requests...</span>
       </div>
     );
   }
@@ -380,17 +368,6 @@ export default function BookingRequests() {
                           Booked: {booking.bookingDate}
                         </span>
                       )}
-                      {booking.package.totalPrice > 0 && (
-                        <span
-                          className={`${
-                            isDarkTheme
-                              ? "text-gray-400"
-                              : "text-base-content/60"
-                          }`}
-                        >
-                          Value: ${booking.package.totalPrice}
-                        </span>
-                      )}
                     </div>
                   </div>
                 )}
@@ -400,12 +377,16 @@ export default function BookingRequests() {
         </div>
       )}
 
-      <BookingPreview
-        booking={selectedBooking}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onStatusUpdate={handleStatusUpdate}
-      />
+      {/* Booking Preview Modal */}
+      {selectedBooking && (
+        <BookingPreview
+          booking={selectedBooking}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onStatusUpdate={handleStatusUpdate}
+          isDarkTheme={isDarkTheme}
+        />
+      )}
     </div>
   );
 }

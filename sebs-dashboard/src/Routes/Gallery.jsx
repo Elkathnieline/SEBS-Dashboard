@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 import { useTheme } from '../Contexts/ThemeContext.jsx';
+import { useGallery } from '../Hooks/useGallery.js';
 import PhotoUpload from '../Components/Photos/PhotoUpload.jsx';
 import PhotoPreview from '../Components/Photos/PhotoPreview.jsx';
 import Highlights from '../Components/Photos/Highlights.jsx';
@@ -13,16 +14,45 @@ export default function Gallery() {
   const [events, setEvents] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const { deleteImage, publishEvent, uploadHighlights, fetchHighlights } = useGallery();
 
-  // Remove handlePhotoUpload since all uploads create events
+  // Fetch highlights on component mount
+  useEffect(() => {
+    const loadHighlights = async () => {
+      setIsLoading(true);
+      const result = await fetchHighlights();
+      
+      if (result.success) {
+        setHighlights(result.highlights);
+      }
+      setIsLoading(false);
+    };
+
+    loadHighlights();
+  }, [fetchHighlights]);
+
   const handleHighlightUpload = (newHighlight) => {
     if (highlights.length < 10) {
       setHighlights(prev => [newHighlight, ...prev]);
     }
   };
 
-  const handleRemoveHighlight = (photoId) => {
-    setHighlights(prev => prev.filter(h => h.id !== photoId));
+  const handleRemoveHighlight = async (photoId) => {
+    // Find the highlight to get its highlightId
+    const highlight = highlights.find(h => h.id === photoId);
+    
+    if (highlight && highlight.highlightId) {
+      const result = await deleteImage(highlight.highlightId, 'highlight');
+      
+      if (result.success) {
+        setHighlights(prev => prev.filter(h => h.id !== photoId));
+      }
+    } else {
+      // Fallback for local-only highlights
+      setHighlights(prev => prev.filter(h => h.id !== photoId));
+    }
   };
 
   const handleEventUpload = (event) => {
@@ -30,75 +60,46 @@ export default function Gallery() {
     setPhotos(prev => [...event.photos, ...prev]);
   };
 
-  const handlePublishEvent = (eventId) => {
-    setEvents(prev => prev.map(event =>
-      event.id === eventId
-        ? { ...event, status: 'published', isPublished: true }
-        : event
-    ));
-
-    // API call would be:
-    // fetch(`/api/events/${eventId}/publish`, {
-    //   method: 'PUT',
-    //   headers: { 
-    //     'Authorization': `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // .then(response => {
-    //   if (!response.ok) {
-    //     throw new Error('Failed to publish event');
-    //   }
-    //   return response.json();
-    // })
-    // .then(data => {
-    //   console.log('Event published:', data);
-    // })
-    // .catch(error => {
-    //   console.error('Publish failed:', error);
-    // });
-  };
-
-  const handleDeletePhotoFromEvent = (eventId, photoId) => {
-    // Remove photo from the specific event
-    setEvents(prev => prev.map(event => 
-      event.id === eventId 
-        ? { ...event, photos: event.photos.filter(photo => photo.id !== photoId) }
-        : event
-    ).filter(event => event.photos.length > 0)); // Automatically remove empty events
-
-    // Remove photo from main photos array
-    setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+  const handlePublishEvent = async (eventId) => {
+    const result = await publishEvent(eventId);
     
-    // Remove from highlights if present
-    setHighlights(prev => prev.filter(h => h.id !== photoId));
-
-    // API call would be:
-    // fetch(`/api/events/${eventId}/photos/${photoId}`, {
-    //   method: 'DELETE',
-    //   headers: { 
-    //     'Authorization': `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // .then(response => {
-    //   if (!response.ok) {
-    //     throw new Error('Failed to delete photo');
-    //   }
-    //   return response.json();
-    // })
-    // .then(data => {
-    //   console.log('Photo deleted:', data);
-    // })
-    // .catch(error => {
-    //   console.error('Delete failed:', error);
-    // });
+    if (result.success) {
+      setEvents(prev => prev.map(event =>
+        event.id === eventId
+          ? { ...event, status: 'published', isPublished: true }
+          : event
+      ));
+    }
   };
 
-  const handleDeleteEvent = (eventId) => {
+  const handleDeletePhotoFromEvent = async (eventId, photoId) => {
+    // Call API to delete the image
+    const result = await deleteImage(photoId);
+    
+    if (result.success) {
+      // Remove photo from the specific event
+      setEvents(prev => prev.map(event => 
+        event.id === eventId 
+          ? { ...event, photos: event.photos.filter(photo => photo.id !== photoId) }
+          : event
+      ).filter(event => event.photos.length > 0)); // Automatically remove empty events
+
+      // Remove photo from main photos array
+      setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+      
+      // Remove from highlights if present
+      setHighlights(prev => prev.filter(h => h.id !== photoId));
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
     // Get all photo IDs from this event before deletion
     const eventToDelete = events.find(event => event.id === eventId);
     const photoIdsToDelete = eventToDelete?.photos.map(photo => photo.id) || [];
+
+    // Delete all photos from the API
+    const deletePromises = photoIdsToDelete.map(photoId => deleteImage(photoId));
+    await Promise.all(deletePromises);
 
     // Remove entire event
     setEvents(prev => prev.filter(event => event.id !== eventId));
@@ -108,27 +109,6 @@ export default function Gallery() {
     
     // Remove any highlights that were part of this event
     setHighlights(prev => prev.filter(h => !photoIdsToDelete.includes(h.id)));
-
-    // API call would be:
-    // fetch(`/api/events/${eventId}`, {
-    //   method: 'DELETE',
-    //   headers: { 
-    //     'Authorization': `Bearer ${token}`,
-    //     'Content-Type': 'application/json'
-    //   }
-    // })
-    // .then(response => {
-    //   if (!response.ok) {
-    //     throw new Error('Failed to delete event');
-    //   }
-    //   return response.json();
-    // })
-    // .then(data => {
-    //   console.log('Event deleted:', data);
-    // })
-    // .catch(error => {
-    //   console.error('Delete failed:', error);
-    // });
   };
 
   const handlePreviewPhoto = (photo) => {
@@ -163,7 +143,7 @@ export default function Gallery() {
     })));
   };
 
-  const handleDeletePhotoFromPreview = (photoId) => {
+  const handleDeletePhotoFromPreview = async (photoId) => {
     // Find which event contains this photo
     const eventWithPhoto = events.find(event => 
       event.photos.some(photo => photo.id === photoId)
@@ -171,11 +151,15 @@ export default function Gallery() {
     
     if (eventWithPhoto) {
       // Use existing delete handler
-      handleDeletePhotoFromEvent(eventWithPhoto.id, photoId);
+      await handleDeletePhotoFromEvent(eventWithPhoto.id, photoId);
     } else {
       // Handle individual photos if any
-      setPhotos(prev => prev.filter(photo => photo.id !== photoId));
-      setHighlights(prev => prev.filter(h => h.id !== photoId));
+      const result = await deleteImage(photoId);
+      
+      if (result.success) {
+        setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+        setHighlights(prev => prev.filter(h => h.id !== photoId));
+      }
     }
   };
 
@@ -216,6 +200,7 @@ export default function Gallery() {
               onUploadHighlight={handleHighlightUpload}
               onRemoveHighlight={handleRemoveHighlight}
               onPreviewPhoto={handlePreviewPhoto}
+              isLoading={isLoading}
             />
           </div>
         </div>
