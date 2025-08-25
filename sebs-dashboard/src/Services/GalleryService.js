@@ -276,6 +276,37 @@ class GalleryService {
     
     return Promise.allSettled(preloadPromises);
   }
+
+  // Add public highlights fetch (no auth required)
+  async fetchPublicHighlights() {
+    const response = await fetch(`${this.apiUrl}/api/public/highlights`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to fetch public highlights" }));
+      throw new Error(errorData.message || "Failed to fetch public highlights");
+    }
+
+    const highlights = await response.json();
+
+    // Transform to match your existing structure
+    return highlights.map((highlight) => ({
+      id: highlight.imageId || highlight.id,
+      url: highlight.imageUrl ? `${this.apiUrl}${highlight.imageUrl}` : null,
+      caption: highlight.image?.caption || highlight.image?.fileName || "",
+      fileName: highlight.image?.fileName,
+      width: highlight.image?.width,
+      height: highlight.image?.height,
+      displayOrder: highlight.displayOrder,
+      isPublished: true
+    })).filter(highlight => highlight.url);
+  }
 }
 
 export const galleryService = new GalleryService();

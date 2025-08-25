@@ -112,8 +112,11 @@ export default function Gallery() {
   };
 
   const handlePreviewPhoto = (photo) => {
-    setSelectedPhoto(photo);
-    setIsPreviewOpen(true);
+    console.log('Preview photo:', photo);
+    if (photo && photo.id) {
+      setSelectedPhoto(photo);
+      setIsPreviewOpen(true);
+    }
   };
 
   const handleClosePreview = () => {

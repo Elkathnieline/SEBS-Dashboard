@@ -70,15 +70,30 @@ export default function Highlights({ highlights, onUploadHighlight, onRemoveHigh
 
   // Component to handle image rendering with proper error handling
   const SafeImage = ({ photo, className, onClick, alt }) => {
-    // Use smaller thumbnails for highlights grid (150x96 as suggested in docs)
+    const [imageError, setImageError] = useState(false);
     const imageUrl = getOptimizedImageUrl(photo, 150, 96);
     
-    if (!imageUrl) {
-      // Render placeholder when no valid image URL is available
+    const handleClick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onClick && !imageError) {
+        onClick();
+      }
+    };
+
+    const handleError = (e) => {
+      console.warn('Failed to load image:', imageUrl);
+      setImageError(true);
+      
+      // Replace with placeholder instead of hiding
+      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9Ijk2IiB2aWV3Qm94PSIwIDAgMTUwIDk2IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iOTYiIGZpbGw9IiNGM0Y0RjYiLz48L3N2Zz4=';
+    };
+    
+    if (!imageUrl || imageError) {
       return (
         <div 
           className={`${className} bg-gray-200 flex items-center justify-center cursor-pointer`}
-          onClick={onClick}
+          onClick={handleClick}
         >
           <Star size={24} className="text-gray-400" />
         </div>
@@ -90,17 +105,9 @@ export default function Highlights({ highlights, onUploadHighlight, onRemoveHigh
         src={imageUrl}
         alt={alt || photo.caption || 'Highlight'}
         className={className}
-        onClick={onClick}
-        loading="lazy" // Add lazy loading for better performance
-        onError={(e) => {
-          // Handle image load errors gracefully
-          console.warn('Failed to load image:', imageUrl);
-          const placeholder = document.createElement('div');
-          placeholder.className = `${className} bg-gray-200 flex items-center justify-center cursor-pointer`;
-          placeholder.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="text-gray-400"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
-          placeholder.onclick = onClick;
-          e.target.parentElement.replaceChild(placeholder, e.target);
-        }}
+        onClick={handleClick}
+        loading="lazy"
+        onError={handleError}
       />
     );
   };
@@ -219,13 +226,20 @@ export default function Highlights({ highlights, onUploadHighlight, onRemoveHigh
                       <SafeImage
                         photo={photo}
                         className="w-full h-24 object-cover"
-                        onClick={() => onPreviewPhoto(photo)}
+                        onClick={() => {
+                          console.log('Image clicked:', photo);
+                          onPreviewPhoto && onPreviewPhoto(photo);
+                        }}
                         alt={photo.caption || 'Highlight'}
                       />
                     </div>
                     {isEditing && (
                       <button
-                        onClick={() => onRemoveHighlight(photo.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onRemoveHighlight && onRemoveHighlight(photo.id);
+                        }}
                         className="absolute -top-2 -right-2 btn btn-xs btn-circle btn-error opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash2 size={12} />
