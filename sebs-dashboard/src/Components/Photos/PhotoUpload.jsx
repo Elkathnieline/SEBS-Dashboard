@@ -12,7 +12,7 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
     isUploading, 
     uploadProgress, 
     error, 
-    uploadImages, 
+    uploadEventImages, // Use new method instead of uploadImages
     clearError,
     resetUpload 
   } = useGallery();
@@ -39,9 +39,9 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
     e.preventDefault();
     if (selectedFiles.length === 0 || !eventTitle.trim()) return;
 
-    clearError(); // Clear any previous errors
+    clearError();
     
-    const result = await uploadImages(selectedFiles, eventTitle);
+    const result = await uploadEventImages(selectedFiles, eventTitle);
     
     if (result.success) {
       onEventUpload(result.event);

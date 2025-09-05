@@ -73,6 +73,39 @@ export const useGallery = () => {
     }
   }, []);
 
+  const uploadEventImages = useCallback(async (files, eventTitle) => {
+    setIsUploading(true);
+    setError(null);
+    setUploadProgress(0);
+
+    try {
+      const result = await galleryService.uploadEventImages(files, eventTitle);
+      
+      // Create event structure to match current format
+      const newEvent = {
+        id: result.eventGalleryId,
+        title: eventTitle,
+        photos: result.photos,
+        createdAt: new Date().toISOString(),
+        status: 'draft',
+        isPublished: false,
+        photoCount: result.photos.length
+      };
+
+      setIsUploading(false);
+      setUploadProgress(100);
+      
+      return { success: true, event: newEvent, photos: result.photos };
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError(error.message);
+      setIsUploading(false);
+      setUploadProgress(0);
+      
+      return { success: false, error: error.message };
+    }
+  }, []);
+
   const deleteImage = useCallback(async (id, type = 'image') => {
     try {
       await galleryService.deleteImage(id, type);
@@ -114,6 +147,7 @@ export const useGallery = () => {
     // Actions
     fetchHighlights,
     uploadImages,
+    uploadEventImages, // Add new method
     uploadHighlights,
     deleteImage,
     publishEvent,

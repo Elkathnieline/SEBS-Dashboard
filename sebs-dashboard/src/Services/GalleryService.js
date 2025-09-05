@@ -87,7 +87,7 @@ class GalleryService {
     return this.getImageUrl(imageUrl);
   }
 
-  async uploadHighlights(files, caption = "", startingDisplayOrder = 0) {
+  async   uploadHighlights(files, caption = "", startingDisplayOrder = 0) {
     const formData = new FormData();
 
     files.forEach((file) => {
@@ -306,6 +306,141 @@ class GalleryService {
       displayOrder: highlight.displayOrder,
       isPublished: true
     })).filter(highlight => highlight.url);
+  }
+
+  async uploadEventImages(files, eventTitle) {
+    let eventGalleryId = null;
+    
+    return fetch(`${this.apiUrl}/api/Event-Gallery/info`, {
+      method: "POST",
+      headers: {
+        ...this.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: eventTitle,
+        isPublished: false
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Failed to create event gallery");
+      }
+      return response.json();
+    })
+    .then(eventResult => {
+      eventGalleryId = eventResult.eventGalleryId;
+      
+      // Upload images sequentially
+      const uploadPromises = files.map((file, index) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("caption", file.name.split(".")[0]);
+
+        return fetch(`${this.apiUrl}/api/admin/images/upload`, {
+          method: "POST",
+          headers: this.getAuthHeaders(),
+          body: formData,
+        })
+        .then(uploadResponse => {
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+          return uploadResponse.json();
+        })
+        .then(uploadResult => ({
+          imageId: uploadResult.imageId,
+          s3Key: uploadResult.s3Key,
+          file: file,
+          index: index
+        }));
+      });
+
+      return Promise.all(uploadPromises);
+    })
+    .then(uploadedImages => {
+      // Associate images with event gallery
+      const associatePromises = uploadedImages.map((image, index) => {
+        return fetch(`${this.apiUrl}/api/Event-Gallery/${eventGalleryId}/images`, {
+          method: "POST",
+          headers: {
+            ...this.getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageId: image.imageId,
+            displayOrder: index
+          })
+        })
+        .then(associateResponse => {
+          if (!associateResponse.ok) {
+            throw new Error(`Failed to associate image with event`);
+          }
+          return image;
+        });
+      });
+
+      return Promise.all(associatePromises);
+    })
+    .then(associatedImages => {
+      // Create photos array for UI
+      const photos = associatedImages.map((image) => ({
+        id: image.imageId,
+        url: this.getImageUrl(image.s3Key),
+        caption: image.file.name.split(".")[0],
+        uploadDate: new Date().toISOString(),
+        originalName: image.file.name,
+        size: image.file.size,
+        type: image.file.type,
+        s3Key: image.s3Key,
+      }));
+
+      return {
+        eventGalleryId,
+        photos,
+        eventTitle
+      };
+    })
+    .catch(error => {
+      // Cleanup event if created but images failed
+      if (eventGalleryId) {
+        fetch(`${this.apiUrl}/api/Event-Gallery/${eventGalleryId}`, {
+          method: "DELETE",
+          headers: this.getAuthHeaders(),
+        }).catch(deleteError => {
+          console.error('Failed to cleanup event after error:', deleteError);
+        });
+      }
+      
+      throw error;
+    });
+  }
+
+  // Add new delete methods for event galleries
+  async deleteEventGallery(eventId, deleteImages = true) {
+    return fetch(`${this.apiUrl}/api/Event-Gallery/${eventId}?deleteImages=${deleteImages}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Failed to delete event gallery");
+      }
+      return true;
+    });
+  }
+
+  async deleteImageFromEventGallery(galleryId, eventImageId) {
+    return fetch(`${this.apiUrl}/api/Event-Gallery/${galleryId}/images/${eventImageId}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(),
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Failed to delete image from gallery");
+      }
+      return true;
+    });
   }
 }
 
