@@ -15,23 +15,44 @@ export default function Gallery() {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   
-  const { deleteImage, publishEvent, fetchHighlights } = useGallery();
+  const { 
+    deleteImage, 
+    publishEventGallery, 
+    fetchHighlights,
+    fetchEventGalleries,
+    deleteEventGallery,
+    removeImageFromGallery
+  } = useGallery();
 
-  // Fetch highlights on component mount
+  // Fetch highlights and event galleries on component mount
   useEffect(() => {
-    const loadHighlights = async () => {
+    const loadData = async () => {
       setIsLoading(true);
-      const result = await fetchHighlights();
       
-      if (result.success) {
-        setHighlights(result.highlights);
+      // Load highlights
+      const highlightsResult = await fetchHighlights();
+      if (highlightsResult.success) {
+        setHighlights(highlightsResult.highlights);
       }
+      
+      // Load existing event galleries
+      setIsLoadingEvents(true);
+      const galleriesResult = await fetchEventGalleries();
+      if (galleriesResult.success) {
+        setEvents(galleriesResult.galleries);
+        // Extract all photos from events
+        const allEventPhotos = galleriesResult.galleries.flatMap(event => event.photos);
+        setPhotos(allEventPhotos);
+      }
+      setIsLoadingEvents(false);
+      
       setIsLoading(false);
     };
 
-    loadHighlights();
-  }, [fetchHighlights]);
+    loadData();
+  }, [fetchHighlights, fetchEventGalleries]);
 
   const handleHighlightUpload = (newHighlight) => {
     if (highlights.length < 10) {
@@ -61,7 +82,7 @@ export default function Gallery() {
   };
 
   const handlePublishEvent = async (eventId) => {
-    const result = await publishEvent(eventId);
+    const result = await publishEventGallery(eventId); // Use new method
     
     if (result.success) {
       setEvents(prev => prev.map(event =>
@@ -79,8 +100,10 @@ export default function Gallery() {
     
     if (!photo) return;
 
-    // Use gallery-image type for event photos to properly remove from gallery
-    const result = await deleteImage(photoId, 'gallery-image');
+    // Use removeImageFromGallery if we have eventImageId, otherwise delete completely
+    const result = photo.eventImageId 
+      ? await removeImageFromGallery(eventId, photo.eventImageId)
+      : await deleteImage(photoId, 'gallery-image');
     
     if (result.success) {
       // Remove photo from the specific event
@@ -99,17 +122,13 @@ export default function Gallery() {
   };
 
   const handleDeleteEvent = async (eventId) => {
-    // Get all photo IDs from this event before deletion
-    const eventToDelete = events.find(event => event.id === eventId);
-    const photoIdsToDelete = eventToDelete?.photos.map(photo => photo.id) || [];
-
-    // Delete all photos from the API using proper endpoints
-    const deletePromises = photoIdsToDelete.map(photoId => 
-      deleteImage(photoId, 'gallery-image')
-    );
+    // Use the proper API endpoint to delete entire gallery
+    const result = await deleteEventGallery(eventId);
     
-    try {
-      await Promise.all(deletePromises);
+    if (result.success) {
+      // Get photo IDs before removing event
+      const eventToDelete = events.find(event => event.id === eventId);
+      const photoIdsToDelete = eventToDelete?.photos.map(photo => photo.id) || [];
 
       // Remove entire event
       setEvents(prev => prev.filter(event => event.id !== eventId));
@@ -121,9 +140,6 @@ export default function Gallery() {
       setHighlights(prev => prev.filter(h => 
         !photoIdsToDelete.includes(h.id) && !photoIdsToDelete.includes(h.imageId)
       ));
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      alert('Some photos could not be deleted. Please try again.');
     }
   };
 
@@ -193,6 +209,22 @@ export default function Gallery() {
     handleClosePreview();
   };
 
+  // NEW: Handle adding photos to existing gallery
+  const handleAddPhotosToGallery = (galleryId, newPhotos) => {
+    setEvents(prev => prev.map(event =>
+      event.id === galleryId
+        ? { 
+            ...event, 
+            photos: [...event.photos, ...newPhotos],
+            photoCount: event.photos.length + newPhotos.length
+          }
+        : event
+    ));
+    
+    // Add to main photos array as well
+    setPhotos(prev => [...prev, ...newPhotos]);
+  };
+
   return (
     <div className={`min-h-screen p-6 transition-colors duration-300 ${
       isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
@@ -235,14 +267,24 @@ export default function Gallery() {
           </div>
         </div>
 
-        {/* Event Albums - Vertical Layout */}
-        <EventAlbums
-          events={events}
-          onPreviewPhoto={handlePreviewPhoto}
-          onDeletePhoto={handleDeletePhotoFromEvent}
-          onDeleteEvent={handleDeleteEvent}
-          onPublishEvent={handlePublishEvent}
-        />
+        {/* Event Albums - Show loading state */}
+        {isLoadingEvents ? (
+          <div className={`text-center py-8 ${
+            isDarkTheme ? 'text-gray-400' : 'text-base-content/60'
+          }`}>
+            <div className="loading loading-spinner loading-lg mx-auto mb-4"></div>
+            <p>Loading event galleries...</p>
+          </div>
+        ) : (
+          <EventAlbums
+            events={events}
+            onPreviewPhoto={handlePreviewPhoto}
+            onDeletePhoto={handleDeletePhotoFromEvent}
+            onDeleteEvent={handleDeleteEvent}
+            onPublishEvent={handlePublishEvent}
+            onAddPhotos={handleAddPhotosToGallery}  // NEW: Pass handler for adding photos
+          />
+        )}
 
         {/* Photo Preview Modal */}
         <PhotoPreview
