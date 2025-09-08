@@ -28,21 +28,27 @@ export default function Highlights({ highlights, onUploadHighlight, onRemoveHigh
       alert(`Only uploading ${filesToUpload.length} files due to highlight limit of 10.`);
     }
     
-    // Use the bulk upload endpoint
+    // Use the bulk upload endpoint with proper display order
     const result = await uploadHighlights(
       filesToUpload, 
       '', // No specific caption - will use filename
-      highlights.length // Starting display order
+      highlights.length + 1 // Starting display order
     );
     
     if (result.success) {
-      // Add all successfully uploaded photos
+      // Add all successfully uploaded photos using the callback
       result.photos.forEach(photo => {
         onUploadHighlight(photo);
       });
       
+      // Show success message
+      if (result.successCount > 0) {
+        console.log(`${result.successCount} highlights uploaded successfully`);
+      }
+      
       // Show any errors that occurred
       if (result.errors && result.errors.length > 0) {
+        console.warn('Some uploads failed:', result.errors);
         alert(`Some uploads failed:\n${result.errors.join('\n')}`);
       }
     }
@@ -173,7 +179,7 @@ export default function Highlights({ highlights, onUploadHighlight, onRemoveHigh
             <button
               onClick={() => setIsEditing(!isEditing)}
               className={`btn btn-sm ${isEditing ? 'btn-primary' : 'btn-outline'}`}
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
             >
               <Edit3 size={14} />
               {isEditing ? 'Done' : 'Edit'}

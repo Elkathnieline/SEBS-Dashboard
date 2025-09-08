@@ -1,31 +1,55 @@
 import { useState } from 'react';
 import { Calendar, Trash2, Edit3, Check, X, Upload, Eye } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
+import { useGallery } from '../../Hooks/useGallery.js';
 
 export default function EventAlbums({ events, onPreviewPhoto, onDeletePhoto, onDeleteEvent, onPublishEvent }) {
   const { isDarkTheme } = useTheme();
   const [editingEventId, setEditingEventId] = useState(null);
   const [selectedPhotos, setSelectedPhotos] = useState(new Set());
+  
+  // Get delete function from hook for proper error handling
+  const { deleteImage } = useGallery();
 
   if (events.length === 0) return null;
 
-  const handleDeletePhoto = (eventId, photoId, photoTitle, e) => {
+  const handleDeletePhoto = async (eventId, photoId, photoTitle, e) => {
     e.stopPropagation();
     if (window.confirm(`Are you sure you want to delete "${photoTitle}"?`)) {
-      onDeletePhoto(eventId, photoId);
-      // Remove from selected if it was selected
-      const newSelected = new Set(selectedPhotos);
-      newSelected.delete(photoId);
-      setSelectedPhotos(newSelected);
+      // Use the hook's deleteImage method for consistent error handling
+      const result = await deleteImage(photoId, 'gallery-image');
+      
+      if (result.success) {
+        onDeletePhoto(eventId, photoId);
+        // Remove from selected if it was selected
+        const newSelected = new Set(selectedPhotos);
+        newSelected.delete(photoId);
+        setSelectedPhotos(newSelected);
+      }
     }
   };
 
-  const handleDeleteEvent = (eventId, eventTitle, photoCount, e) => {
+  const handleDeleteEvent = async (eventId, eventTitle, photoCount, e) => {
     e.stopPropagation();
     if (window.confirm(`Are you sure you want to delete the entire "${eventTitle}" event? This will remove all ${photoCount} photos.`)) {
-      onDeleteEvent(eventId);
-      setEditingEventId(null);
-      setSelectedPhotos(new Set());
+      // Find the event to get all photo IDs
+      const event = events.find(e => e.id === eventId);
+      if (event) {
+        // Delete all photos first using the proper API endpoints
+        const deletePromises = event.photos.map(photo => 
+          deleteImage(photo.id, 'gallery-image')
+        );
+        
+        try {
+          await Promise.all(deletePromises);
+          onDeleteEvent(eventId);
+          setEditingEventId(null);
+          setSelectedPhotos(new Set());
+        } catch (error) {
+          console.error('Error deleting event photos:', error);
+          alert('Some photos could not be deleted. Please try again.');
+        }
+      }
     }
   };
 
@@ -36,11 +60,26 @@ export default function EventAlbums({ events, onPreviewPhoto, onDeletePhoto, onD
     }
   };
 
-  const handleBulkDeletePhotos = (eventId, photoIds, e) => {
+  const handleBulkDeletePhotos = async (eventId, photoIds, e) => {
     e.stopPropagation();
     if (window.confirm(`Are you sure you want to delete ${photoIds.length} selected photos?`)) {
-      photoIds.forEach(photoId => onDeletePhoto(eventId, photoId));
-      setSelectedPhotos(new Set());
+      // Use the hook's deleteImage method for each photo
+      const deletePromises = photoIds.map(photoId => 
+        deleteImage(photoId, 'gallery-image').then(result => {
+          if (result.success) {
+            onDeletePhoto(eventId, photoId);
+          }
+          return result;
+        })
+      );
+      
+      try {
+        await Promise.all(deletePromises);
+        setSelectedPhotos(new Set());
+      } catch (error) {
+        console.error('Error in bulk delete:', error);
+        alert('Some photos could not be deleted. Please try again.');
+      }
     }
   };
 
@@ -122,6 +161,7 @@ export default function EventAlbums({ events, onPreviewPhoto, onDeletePhoto, onD
                       <button
                         onClick={(e) => handlePublishEvent(event.id, event.title, e)}
                         className="btn btn-sm btn-success"
+                        title="Publish event to make it visible on the frontend"
                       >
                         <Upload size={14} />
                         Publish

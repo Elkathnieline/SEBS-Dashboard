@@ -16,7 +16,7 @@ export default function Gallery() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const { deleteImage, publishEvent, uploadHighlights, fetchHighlights } = useGallery();
+  const { deleteImage, publishEvent, fetchHighlights } = useGallery();
 
   // Fetch highlights on component mount
   useEffect(() => {
@@ -73,8 +73,14 @@ export default function Gallery() {
   };
 
   const handleDeletePhotoFromEvent = async (eventId, photoId) => {
-    // Call API to delete the image
-    const result = await deleteImage(photoId);
+    // Find the event and photo
+    const event = events.find(e => e.id === eventId);
+    const photo = event?.photos.find(p => p.id === photoId);
+    
+    if (!photo) return;
+
+    // Use gallery-image type for event photos to properly remove from gallery
+    const result = await deleteImage(photoId, 'gallery-image');
     
     if (result.success) {
       // Remove photo from the specific event
@@ -87,8 +93,8 @@ export default function Gallery() {
       // Remove photo from main photos array
       setPhotos(prev => prev.filter(photo => photo.id !== photoId));
       
-      // Remove from highlights if present
-      setHighlights(prev => prev.filter(h => h.id !== photoId));
+      // Remove from highlights if present (use imageId for highlights)
+      setHighlights(prev => prev.filter(h => h.imageId !== photoId && h.id !== photoId));
     }
   };
 
@@ -97,18 +103,28 @@ export default function Gallery() {
     const eventToDelete = events.find(event => event.id === eventId);
     const photoIdsToDelete = eventToDelete?.photos.map(photo => photo.id) || [];
 
-    // Delete all photos from the API
-    const deletePromises = photoIdsToDelete.map(photoId => deleteImage(photoId));
-    await Promise.all(deletePromises);
+    // Delete all photos from the API using proper endpoints
+    const deletePromises = photoIdsToDelete.map(photoId => 
+      deleteImage(photoId, 'gallery-image')
+    );
+    
+    try {
+      await Promise.all(deletePromises);
 
-    // Remove entire event
-    setEvents(prev => prev.filter(event => event.id !== eventId));
-    
-    // Remove all photos from this event from photos array
-    setPhotos(prev => prev.filter(photo => !photoIdsToDelete.includes(photo.id)));
-    
-    // Remove any highlights that were part of this event
-    setHighlights(prev => prev.filter(h => !photoIdsToDelete.includes(h.id)));
+      // Remove entire event
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+      
+      // Remove all photos from this event from photos array
+      setPhotos(prev => prev.filter(photo => !photoIdsToDelete.includes(photo.id)));
+      
+      // Remove any highlights that were part of this event
+      setHighlights(prev => prev.filter(h => 
+        !photoIdsToDelete.includes(h.id) && !photoIdsToDelete.includes(h.imageId)
+      ));
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Some photos could not be deleted. Please try again.');
+    }
   };
 
   const handlePreviewPhoto = (photo) => {
@@ -153,17 +169,28 @@ export default function Gallery() {
     );
     
     if (eventWithPhoto) {
-      // Use existing delete handler
+      // Use existing delete handler for event photos
       await handleDeletePhotoFromEvent(eventWithPhoto.id, photoId);
     } else {
-      // Handle individual photos if any
-      const result = await deleteImage(photoId);
+      // Handle individual photos if any (highlights)
+      const highlight = highlights.find(h => h.id === photoId || h.imageId === photoId);
       
-      if (result.success) {
-        setPhotos(prev => prev.filter(photo => photo.id !== photoId));
-        setHighlights(prev => prev.filter(h => h.id !== photoId));
+      if (highlight) {
+        // Use highlight deletion
+        await handleRemoveHighlight(photoId);
+      } else {
+        // Fallback to general image deletion
+        const result = await deleteImage(photoId);
+        
+        if (result.success) {
+          setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+          setHighlights(prev => prev.filter(h => h.id !== photoId));
+        }
       }
     }
+    
+    // Close preview after deletion
+    handleClosePreview();
   };
 
   return (
@@ -223,6 +250,7 @@ export default function Gallery() {
           isOpen={isPreviewOpen}
           onClose={handleClosePreview}
           onDeletePhoto={handleDeletePhotoFromPreview}
+          onUpdateCaption={handleUpdateCaption}
         />
       </div>
     </div>

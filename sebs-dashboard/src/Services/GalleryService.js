@@ -87,10 +87,11 @@ class GalleryService {
     return this.getImageUrl(imageUrl);
   }
 
-  async   uploadHighlights(files, caption = "", startingDisplayOrder = 0) {
+  // NEW: Use the recommended highlights upload endpoint
+  async uploadHighlights(files, caption = "", startingDisplayOrder = 0) {
     const formData = new FormData();
 
-    files.forEach((file) => {
+    Array.from(files).forEach((file) => {
       formData.append("Files", file);
     });
 
@@ -98,7 +99,7 @@ class GalleryService {
     formData.append("StartingDisplayOrder", startingDisplayOrder.toString());
 
     const response = await fetch(
-      `${this.apiUrl}/api/admin/images/upload-highlights`,
+      `${this.apiUrl}/api/highlights/upload`, // NEW: Use domain-specific endpoint
       {
         method: "POST",
         headers: this.getAuthHeaders(),
@@ -115,35 +116,24 @@ class GalleryService {
 
     const result = await response.json();
 
-    // Transform response and filter out any uploads without valid S3 keys
-    const uploadedPhotos =
-      result.successfulUploads?.map((upload, index) => ({
-        id:
-          upload.image?.imageId ||
-          upload.highlight?.imageId ||
-          Date.now() + index,
-        highlightId: upload.highlight?.highlightId,
-        imageId: upload.image?.imageId,
-        // Use the proxy endpoint for uploaded images
-        url: this.getImageUrl(upload.image?.s3Key),
-        caption:
-          upload.image?.caption || caption || files[index].name.split(".")[0],
-        uploadDate:
-          upload.image?.uploadedAt ||
-          upload.image?.uploadDate ||
-          upload.image?.createdAt ||
-          new Date().toISOString(),
-        originalName: files[index].name,
-        size: files[index].size,
-        type: files[index].type,
-        isHighlight: true,
-        displayOrder:
-          upload.highlight?.displayOrder || startingDisplayOrder + index,
-        fileName: upload.image?.fileName,
-        width: upload.image?.width,
-        height: upload.image?.height,
-        s3Key: upload.image?.s3Key,
-      })).filter(photo => photo.s3Key) || []; // Filter out photos without S3 keys
+    // Transform response to match BulkHighlightUploadResponseDTO
+    const uploadedPhotos = result.successfulUploads?.map((upload, index) => ({
+      id: upload.image?.imageId || upload.highlight?.imageId || Date.now() + index,
+      highlightId: upload.highlight?.highlightId,
+      imageId: upload.image?.imageId,
+      url: this.getImageUrl(upload.image?.s3Key),
+      caption: upload.image?.caption || caption || files[index].name.split(".")[0],
+      uploadDate: upload.image?.uploadedAt || new Date().toISOString(),
+      originalName: files[index].name,
+      size: files[index].size,
+      type: files[index].type,
+      isHighlight: true,
+      displayOrder: upload.highlight?.displayOrder || startingDisplayOrder + index,
+      fileName: upload.image?.fileName,
+      width: upload.image?.width,
+      height: upload.image?.height,
+      s3Key: upload.image?.s3Key,
+    })).filter(photo => photo.s3Key) || [];
 
     return {
       photos: uploadedPhotos,
@@ -213,10 +203,17 @@ class GalleryService {
 
   async deleteImage(id, type = "image") {
     let endpoint;
-    if (type === "highlight") {
-      endpoint = `${this.apiUrl}/api/highlights/${id}`;
-    } else {
-      endpoint = `${this.apiUrl}/api/admin/images/${id}`;
+    
+    switch (type) {
+      case "highlight":
+        endpoint = `${this.apiUrl}/api/highlights/${id}`;
+        break;
+      case "gallery-image":
+        // This removes the image completely, not just from gallery
+        endpoint = `${this.apiUrl}/api/Event-Gallery/images/${id}`;
+        break;
+      default:
+        endpoint = `${this.apiUrl}/api/admin/images/${id}`;
     }
 
     const response = await fetch(endpoint, {
@@ -308,10 +305,10 @@ class GalleryService {
     })).filter(highlight => highlight.url);
   }
 
+  // NEW: Improved Event Gallery upload using recommended endpoint
   async uploadEventImages(files, eventTitle) {
-    let eventGalleryId = null;
-    
-    return fetch(`${this.apiUrl}/api/Event-Gallery/info`, {
+    // Step 1: Create gallery using recommended endpoint
+    const galleryResponse = await fetch(`${this.apiUrl}/api/Event-Gallery/Create`, {
       method: "POST",
       headers: {
         ...this.getAuthHeaders(),
@@ -321,126 +318,141 @@ class GalleryService {
         title: eventTitle,
         isPublished: false
       })
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Failed to create event gallery");
-      }
-      return response.json();
-    })
-    .then(eventResult => {
-      eventGalleryId = eventResult.eventGalleryId;
-      
-      // Upload images sequentially
-      const uploadPromises = files.map((file, index) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("caption", file.name.split(".")[0]);
+    });
 
-        return fetch(`${this.apiUrl}/api/admin/images/upload`, {
+    if (!galleryResponse.ok) {
+      throw new Error("Failed to create event gallery");
+    }
+
+    const galleryResult = await galleryResponse.json();
+    const eventGalleryId = galleryResult.eventGalleryId;
+
+    try {
+      // Step 2: Upload images using domain-specific endpoint
+      const formData = new FormData();
+      
+      Array.from(files).forEach((file) => {
+        formData.append("Files", file);
+      });
+      
+      formData.append("Caption", "Event photos");
+      formData.append("StartingDisplayOrder", "0");
+
+      const uploadResponse = await fetch(
+        `${this.apiUrl}/api/Event-Gallery/${eventGalleryId}/upload`,
+        {
           method: "POST",
           headers: this.getAuthHeaders(),
           body: formData,
-        })
-        .then(uploadResponse => {
-          if (!uploadResponse.ok) {
-            throw new Error(`Failed to upload ${file.name}`);
-          }
-          return uploadResponse.json();
-        })
-        .then(uploadResult => ({
-          imageId: uploadResult.imageId,
-          s3Key: uploadResult.s3Key,
-          file: file,
-          index: index
-        }));
-      });
+        }
+      );
 
-      return Promise.all(uploadPromises);
-    })
-    .then(uploadedImages => {
-      // Associate images with event gallery
-      const associatePromises = uploadedImages.map((image, index) => {
-        return fetch(`${this.apiUrl}/api/Event-Gallery/${eventGalleryId}/images`, {
-          method: "POST",
-          headers: {
-            ...this.getAuthHeaders(),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            imageId: image.imageId,
-            displayOrder: index
-          })
-        })
-        .then(associateResponse => {
-          if (!associateResponse.ok) {
-            throw new Error(`Failed to associate image with event`);
-          }
-          return image;
-        });
-      });
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload images to gallery");
+      }
 
-      return Promise.all(associatePromises);
-    })
-    .then(associatedImages => {
-      // Create photos array for UI
-      const photos = associatedImages.map((image) => ({
-        id: image.imageId,
-        url: this.getImageUrl(image.s3Key),
-        caption: image.file.name.split(".")[0],
-        uploadDate: new Date().toISOString(),
-        originalName: image.file.name,
-        size: image.file.size,
-        type: image.file.type,
-        s3Key: image.s3Key,
-      }));
+      const uploadResult = await uploadResponse.json();
+
+      // Transform response to match expected format
+      const photos = uploadResult.successfulUploads?.map((upload) => ({
+        id: upload.image?.imageId,
+        url: this.getImageUrl(upload.image?.s3Key),
+        caption: upload.image?.caption || upload.image?.fileName?.split(".")[0] || "",
+        uploadDate: upload.image?.uploadedAt || new Date().toISOString(),
+        originalName: upload.image?.fileName,
+        size: upload.image?.fileSize,
+        type: upload.image?.contentType,
+        s3Key: upload.image?.s3Key,
+      })).filter(photo => photo.s3Key) || [];
 
       return {
         eventGalleryId,
         photos,
         eventTitle
       };
-    })
-    .catch(error => {
-      // Cleanup event if created but images failed
-      if (eventGalleryId) {
-        fetch(`${this.apiUrl}/api/Event-Gallery/${eventGalleryId}`, {
-          method: "DELETE",
-          headers: this.getAuthHeaders(),
-        }).catch(deleteError => {
-          console.error('Failed to cleanup event after error:', deleteError);
-        });
-      }
+
+    } catch (error) {
+      // Cleanup gallery if upload failed
+      await fetch(`${this.apiUrl}/api/Event-Gallery/${eventGalleryId}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+      }).catch(deleteError => {
+        console.error('Failed to cleanup gallery after error:', deleteError);
+      });
       
       throw error;
-    });
+    }
   }
 
-  // Add new delete methods for event galleries
-  async deleteEventGallery(eventId, deleteImages = true) {
-    return fetch(`${this.apiUrl}/api/Event-Gallery/${eventId}?deleteImages=${deleteImages}`, {
-      method: "DELETE",
-      headers: this.getAuthHeaders(),
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Failed to delete event gallery");
-      }
-      return true;
+  // NEW: Get gallery with images
+  async getEventGallery(galleryId) {
+    const response = await fetch(`${this.apiUrl}/api/Event-Gallery/${galleryId}`, {
+      method: "GET",
+      headers: {
+        ...this.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
     });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to fetch gallery" }));
+      throw new Error(errorData.message || "Failed to fetch gallery");
+    }
+
+    return await response.json();
   }
 
-  async deleteImageFromEventGallery(galleryId, eventImageId) {
-    return fetch(`${this.apiUrl}/api/Event-Gallery/${galleryId}/images/${eventImageId}`, {
-      method: "DELETE",
-      headers: this.getAuthHeaders(),
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Failed to delete image from gallery");
+  // NEW: Delete image from specific gallery (not the image itself)
+  async removeImageFromGallery(galleryId, eventImageId) {
+    const response = await fetch(
+      `${this.apiUrl}/api/Event-Gallery/${galleryId}/images/${eventImageId}`,
+      {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
       }
-      return true;
+    );
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to remove image from gallery" }));
+      throw new Error(errorData.message || "Failed to remove image from gallery");
+    }
+
+    return true;
+  }
+
+  // NEW: Generic upload method following the guide's pattern
+  async uploadToController(endpoint, files, options = {}) {
+    const formData = new FormData();
+    
+    Array.from(files).forEach(file => {
+      formData.append('Files', file);
     });
+    
+    if (options.caption) formData.append('Caption', options.caption);
+    if (options.startingDisplayOrder) formData.append('StartingDisplayOrder', options.startingDisplayOrder.toString());
+
+    const url = options.galleryId 
+      ? `${this.apiUrl}${endpoint}/${options.galleryId}/upload`
+      : `${this.apiUrl}${endpoint}/upload`;
+      
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Upload failed" }));
+      throw new Error(errorData.message || "Upload failed");
+    }
+
+    return await response.json();
   }
 }
 
