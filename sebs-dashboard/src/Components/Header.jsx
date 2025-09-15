@@ -1,39 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Search, Mail, MessageSquare } from 'lucide-react';
+import { Search, Mail, MessageSquare, Database } from 'lucide-react';
 import NotificationBell from './Notifications/NotificationBell';
+import CacheDebugger from './Common/CacheDebugger';
+import { cacheManager } from '../Utils/CacheManager.js';
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [messages, setMessages] = useState([]);
+  const [showCacheDebugger, setShowCacheDebugger] = useState(false);
+  const [cacheStats, setCacheStats] = useState({ total: 0 });
 
-  const sampleMessages = [
-    { id: 1, sender: 'Client A', message: 'Booking confirmation needed', time: '10 minutes ago', read: false },
-    { id: 2, sender: 'Client B', message: 'Follow-up required', time: '30 minutes ago', read: false }
-  ];
-
+  // Update cache stats periodically
   useEffect(() => {
-    fetchMessages();
+    const updateStats = () => {
+      setCacheStats(cacheManager.getStats());
+    };
+    
+    updateStats();
+    const interval = setInterval(updateStats, 5000); // Update every 5 seconds
+    
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchMessages = () => {
-    const token = sessionStorage.getItem("backend-token");
-    if (!token) {
-      setMessages(sampleMessages);
-      return;
-    }
+  
 
-    fetch('http://localhost:8000/api/messages', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('Failed to fetch messages');
-        return response.json();
-      })
-      .then((data) => setMessages(data))
-      .catch(() => setMessages(sampleMessages));
-  };
+
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -142,10 +133,36 @@ export default function Header() {
               >
                 <MessageSquare size={20} className="text-base-content/70" />
               </button>
+
+              {/* Cache Status (Development/Debug) */}
+              <div className="dropdown dropdown-end">
+                <button
+                  tabIndex={0}
+                  className="btn btn-ghost btn-circle hover:bg-base-200"
+                  onClick={() => setShowCacheDebugger(true)}
+                  aria-label="Cache Status"
+                  title={`Cache: ${cacheStats.total} items`}
+                >
+                  <div className="indicator">
+                    <Database size={18} className="text-base-content/70" />
+                    {cacheStats.total > 0 && (
+                      <span className="badge badge-xs badge-primary indicator-item">
+                        {cacheStats.total}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Cache Debugger Modal */}
+      <CacheDebugger 
+        isOpen={showCacheDebugger}
+        onClose={() => setShowCacheDebugger(false)}
+      />
     </header>
   );
 }

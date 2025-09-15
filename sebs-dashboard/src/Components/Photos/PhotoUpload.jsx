@@ -1,12 +1,21 @@
 import { useState } from 'react';
-import { Upload, Calendar, Image } from 'lucide-react';
+import { Upload, Calendar, Image, AlertCircle } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
+import { useGallery } from '../../Hooks/useGallery.js';
 
 export default function PhotoUpload({ onUpload, onEventUpload }) {
   const { isDarkTheme } = useTheme();
   const [eventTitle, setEventTitle] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
+  
+  const { 
+    isUploading, 
+    uploadProgress, 
+    error, 
+    uploadEventImages, // Use new method instead of uploadImages
+    clearError,
+    resetUpload 
+  } = useGallery();
 
   // All uploads create events (even single photos)
   const requiresTitle = selectedFiles.length > 0;
@@ -26,43 +35,25 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (selectedFiles.length === 0 || !eventTitle.trim()) return;
 
-    setIsUploading(true);
-
-    // All uploads create events (single or multiple photos)
-    setTimeout(() => {
-      const eventId = Date.now();
-      const eventPhotos = selectedFiles.map((file, index) => ({
-        id: eventId + index,
-        url: URL.createObjectURL(file),
-        caption: selectedFiles.length === 1 
-          ? eventTitle 
-          : `${eventTitle} - Photo ${index + 1}`,
-        eventId: eventId,
-        uploadDate: new Date().toISOString()
-      }));
-
-      const newEvent = {
-        id: eventId,
-        title: eventTitle,
-        photos: eventPhotos,
-        createdAt: new Date().toISOString(),
-        status: 'draft', // Not uploaded to frontend yet
-        isPublished: false
-      };
-
-      onEventUpload(newEvent);
+    clearError();
+    
+    const result = await uploadEventImages(selectedFiles, eventTitle);
+    
+    if (result.success) {
+      onEventUpload(result.event);
       resetForm();
-    }, 1500);
+    }
+    // Error handling is managed by the hook
   };
 
   const resetForm = () => {
     setEventTitle('');
     setSelectedFiles([]);
-    setIsUploading(false);
+    resetUpload(); // Reset upload state from hook
     // Reset file input
     const fileInput = document.querySelector('#photo-upload-input');
     if (fileInput) fileInput.value = '';
@@ -90,6 +81,42 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+          {/* Error Display */}
+          {error && (
+            <div className={`alert alert-error ${
+              isDarkTheme ? 'bg-red-900 border-red-700 text-red-100' : ''
+            }`}>
+              <AlertCircle size={16} />
+              <span>{error}</span>
+              <button 
+                type="button"
+                onClick={clearError}
+                className="btn btn-sm btn-ghost"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Upload Progress */}
+          {isUploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className={isDarkTheme ? 'text-gray-300' : 'text-base-content'}>
+                  Uploading photos...
+                </span>
+                <span className={isDarkTheme ? 'text-gray-300' : 'text-base-content'}>
+                  {uploadProgress}%
+                </span>
+              </div>
+              <progress 
+                className="progress progress-primary w-full" 
+                value={uploadProgress} 
+                max="100"
+              ></progress>
+            </div>
+          )}
+
           {/* Event Title - Always required */}
           <div className="form-control">
             <label className="label">
@@ -180,11 +207,11 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
             className={`btn btn-primary w-full mt-auto flex-shrink-0 ${isUploading ? 'loading' : ''}`}
           >
             {isUploading ? (
-              'Creating Event...'
+              `Uploading... (${uploadProgress}%)`
             ) : (
               <>
                 <Calendar size={16} />
-                Create Event ({selectedFiles.length} photo{selectedFiles.length !== 1 ? 's' : ''})
+                Upload Event ({selectedFiles.length} photo{selectedFiles.length !== 1 ? 's' : ''})
               </>
             )}
           </button>
