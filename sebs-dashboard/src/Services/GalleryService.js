@@ -1,5 +1,3 @@
-import { cacheManager } from '../Utils/CacheManager.js';
-
 class GalleryService {
   constructor() {
     this.apiUrl = import.meta.env.VITE_DEV_API_URL || "";
@@ -16,55 +14,44 @@ class GalleryService {
   }
 
   async fetchHighlights() {
-    const cacheKey = cacheManager.generateKey('gallery', 'highlights');
-    
-    return cacheManager.getOrSet(
-      cacheKey,
-      async () => {
-        const response = await fetch(`${this.apiUrl}/api/highlights`, {
-          method: "GET",
-          headers: {
-            ...this.getAuthHeaders(),
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ message: "Failed to fetch highlights" }));
-          throw new Error(errorData.message || "Failed to fetch highlights");
-        }
-
-        const highlightsData = await response.json();
-
-        // Transform the API response to match the actual response structure
-        return highlightsData
-          .map((highlight) => ({
-            id: highlight.imageId,
-            highlightId: highlight.highlightId,
-            imageId: highlight.imageId,
-            // Use the imageUrl directly from the API response
-            url: highlight.imageUrl ? `${this.apiUrl}${highlight.imageUrl}` : null,
-            caption: highlight.image?.caption || "",
-            uploadDate: highlight.image?.uploadedAt || new Date().toISOString(),
-            displayOrder: highlight.displayOrder,
-            isHighlight: true,
-            originalName: highlight.image?.fileName,
-            width: highlight.image?.width,
-            height: highlight.image?.height,
-            type: highlight.image?.contentType,
-            // Extract S3 key from imageUrl for future use
-            s3Key: highlight.imageUrl ? highlight.imageUrl.split('/').pop() : null,
-          }))
-          .filter(highlight => highlight.url) // Filter out highlights without valid URLs
-          .sort((a, b) => a.displayOrder - b.displayOrder);
+    const response = await fetch(`${this.apiUrl}/api/highlights`, {
+      method: "GET",
+      headers: {
+        ...this.getAuthHeaders(),
+        "Content-Type": "application/json",
       },
-      { 
-        namespace: 'highlights',
-        storageType: 'session' 
-      }
-    );
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to fetch highlights" }));
+      throw new Error(errorData.message || "Failed to fetch highlights");
+    }
+
+    const highlightsData = await response.json();
+
+    // Transform the API response to match the actual response structure
+    return highlightsData
+      .map((highlight) => ({
+        id: highlight.imageId,
+        highlightId: highlight.highlightId,
+        imageId: highlight.imageId,
+        // Use the imageUrl directly from the API response
+        url: highlight.imageUrl ? `${this.apiUrl}${highlight.imageUrl}` : null,
+        caption: highlight.image?.caption || "",
+        uploadDate: highlight.image?.uploadedAt || new Date().toISOString(),
+        displayOrder: highlight.displayOrder,
+        isHighlight: true,
+        originalName: highlight.image?.fileName,
+        width: highlight.image?.width,
+        height: highlight.image?.height,
+        type: highlight.image?.contentType,
+        // Extract S3 key from imageUrl for future use
+        s3Key: highlight.imageUrl ? highlight.imageUrl.split('/').pop() : null,
+      }))
+      .filter(highlight => highlight.url) // Filter out highlights without valid URLs
+      .sort((a, b) => a.displayOrder - b.displayOrder);
   }
 
   // Helper function as shown in API documentation
