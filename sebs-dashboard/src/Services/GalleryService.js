@@ -276,44 +276,33 @@ class GalleryService {
 
   // Add public highlights fetch (no auth required)
   async fetchPublicHighlights() {
-    const cacheKey = cacheManager.generateKey('gallery', 'public-highlights');
-    
-    return cacheManager.getOrSet(
-      cacheKey,
-      async () => {
-        const response = await fetch(`${this.apiUrl}/api/public/highlights`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ message: "Failed to fetch public highlights" }));
-          throw new Error(errorData.message || "Failed to fetch public highlights");
-        }
-
-        const highlights = await response.json();
-
-        // Transform to match your existing structure
-        return highlights.map((highlight) => ({
-          id: highlight.imageId || highlight.id,
-          url: highlight.imageUrl ? `${this.apiUrl}${highlight.imageUrl}` : null,
-          caption: highlight.image?.caption || highlight.image?.fileName || "",
-          fileName: highlight.image?.fileName,
-          width: highlight.image?.width,
-          height: highlight.image?.height,
-          displayOrder: highlight.displayOrder,
-          isPublished: true
-        })).filter(highlight => highlight.url);
+    const response = await fetch(`${this.apiUrl}/api/public/highlights`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
       },
-      { 
-        namespace: 'gallery-public',
-        storageType: 'local' // Public data can persist across sessions
-      }
-    );
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Failed to fetch public highlights" }));
+      throw new Error(errorData.message || "Failed to fetch public highlights");
+    }
+
+    const highlights = await response.json();
+
+    // Transform to match your existing structure
+    return highlights.map((highlight) => ({
+      id: highlight.imageId || highlight.id,
+      url: highlight.imageUrl ? `${this.apiUrl}${highlight.imageUrl}` : null,
+      caption: highlight.image?.caption || highlight.image?.fileName || "",
+      fileName: highlight.image?.fileName,
+      width: highlight.image?.width,
+      height: highlight.image?.height,
+      displayOrder: highlight.displayOrder,
+      isPublished: true
+    })).filter(highlight => highlight.url);
   }
 
   // NEW: Improved Event Gallery upload using recommended endpoint
@@ -397,58 +386,49 @@ class GalleryService {
 
   // NEW: Fetch all event galleries using promise chain
   fetchEventGalleries() {
-    const cacheKey = cacheManager.generateKey('gallery', 'event-galleries');
-    
-    return cacheManager.getOrSet(
-      cacheKey,
-      () => fetch(`${this.apiUrl}/api/Event-Gallery`, {
-        method: "GET",
-        headers: {
-          ...this.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.json()
-            .catch(() => ({ message: "Failed to fetch event galleries" }))
-            .then(errorData => {
-              throw new Error(errorData.message || "Failed to fetch event galleries");
-            });
-        }
-        return response.json();
-      })
-      .then(galleries => {
-        // Transform API response to match expected format
-        return galleries.map(gallery => ({
-          id: gallery.eventGalleryId,
-          title: gallery.title,
-          createdAt: gallery.createdAt,
-          isPublished: gallery.isPublished,
-          status: gallery.isPublished ? 'published' : 'draft',
-          photoCount: gallery.images?.length || 0,
-          photos: gallery.images?.map(eventImage => ({
-            id: eventImage.image?.imageId,
-            eventImageId: eventImage.eventImageId, // Important for removal from gallery
-            galleryId: eventImage.eventGalleryId,
-            url: eventImage.imageUrl ? `${this.apiUrl}${eventImage.imageUrl}` : this.getImageUrl(eventImage.image?.s3Key),
-            caption: eventImage.image?.caption || eventImage.image?.fileName?.split(".")[0] || "",
-            uploadDate: eventImage.image?.uploadedAt || new Date().toISOString(),
-            originalName: eventImage.image?.fileName,
-            size: eventImage.image?.fileSize,
-            type: eventImage.image?.contentType,
-            displayOrder: eventImage.displayOrder,
-            fileName: eventImage.image?.fileName,
-            width: eventImage.image?.width,
-            height: eventImage.image?.height,
-          })).filter(photo => photo.url) || []
-        }));
-      }),
-      { 
-        namespace: 'gallery-events',
-        storageType: 'session' 
+    return fetch(`${this.apiUrl}/api/Event-Gallery`, {
+      method: "GET",
+      headers: {
+        ...this.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json()
+          .catch(() => ({ message: "Failed to fetch event galleries" }))
+          .then(errorData => {
+            throw new Error(errorData.message || "Failed to fetch event galleries");
+          });
       }
-    );
+      return response.json();
+    })
+    .then(galleries => {
+      // Transform API response to match expected format
+      return galleries.map(gallery => ({
+        id: gallery.eventGalleryId,
+        title: gallery.title,
+        createdAt: gallery.createdAt,
+        isPublished: gallery.isPublished,
+        status: gallery.isPublished ? 'published' : 'draft',
+        photoCount: gallery.images?.length || 0,
+        photos: gallery.images?.map(eventImage => ({
+          id: eventImage.image?.imageId,
+          eventImageId: eventImage.eventImageId, // Important for removal from gallery
+          galleryId: eventImage.eventGalleryId,
+          url: eventImage.imageUrl ? `${this.apiUrl}${eventImage.imageUrl}` : this.getImageUrl(eventImage.image?.s3Key),
+          caption: eventImage.image?.caption || eventImage.image?.fileName?.split(".")[0] || "",
+          uploadDate: eventImage.image?.uploadedAt || new Date().toISOString(),
+          originalName: eventImage.image?.fileName,
+          size: eventImage.image?.fileSize,
+          type: eventImage.image?.contentType,
+          displayOrder: eventImage.displayOrder,
+          fileName: eventImage.image?.fileName,
+          width: eventImage.image?.width,
+          height: eventImage.image?.height,
+        })).filter(photo => photo.url) || []
+      }));
+    });
   }
 
   // IMPROVED: Get specific gallery with images using promise chain
@@ -620,78 +600,6 @@ class GalleryService {
         errorCount: result.errorCount || 0,
       };
     });
-  }
-
-  // Cache invalidation methods
-  invalidateHighlightsCache() {
-    cacheManager.invalidate('highlights');
-    cacheManager.invalidate('gallery-public');
-    // Dispatch event for external components
-    window.dispatchEvent(new CustomEvent('galleryUpload'));
-  }
-
-  invalidateGalleryCache() {
-    cacheManager.invalidate('gallery-events');
-    cacheManager.invalidate('gallery');
-    // Dispatch event for external components
-    window.dispatchEvent(new CustomEvent('galleryUpload'));
-  }
-
-  invalidatePublicCache() {
-    cacheManager.invalidate('gallery-public');
-    // Dispatch event for external components
-    window.dispatchEvent(new CustomEvent('galleryPublish'));
-  }
-
-  // Override upload methods to invalidate cache
-  async uploadHighlights(files, caption = "", startingDisplayOrder = 0) {
-    const result = await super.uploadHighlights?.(files, caption, startingDisplayOrder) || 
-                    this.originalUploadHighlights(files, caption, startingDisplayOrder);
-    
-    if (result.successCount > 0) {
-      this.invalidateHighlightsCache();
-    }
-    
-    return result;
-  }
-
-  // Store original methods for cache invalidation wrappers
-  originalUploadHighlights = super.uploadHighlights || this.uploadHighlights;
-  originalDeleteImage = this.deleteImage;
-  originalPublishEvent = this.publishEvent;
-
-  async deleteImage(id, type = "image") {
-    const result = await this.originalDeleteImage(id, type);
-    
-    if (result) {
-      if (type === 'highlight') {
-        this.invalidateHighlightsCache();
-      } else {
-        this.invalidateGalleryCache();
-      }
-      // Dispatch event for external components
-      window.dispatchEvent(new CustomEvent('galleryDelete'));
-    }
-    
-    return result;
-  }
-
-  async publishEvent(eventId) {
-    const result = await this.originalPublishEvent(eventId);
-    
-    if (result) {
-      this.invalidatePublicCache();
-    }
-    
-    return result;
-  }
-
-  // Utility method to refresh all gallery caches
-  refreshAllCaches() {
-    cacheManager.invalidate('gallery');
-    cacheManager.invalidate('highlights');
-    cacheManager.invalidate('gallery-public');
-    cacheManager.invalidate('gallery-events');
   }
 }
 

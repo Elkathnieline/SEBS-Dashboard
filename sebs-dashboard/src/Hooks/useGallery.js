@@ -1,24 +1,14 @@
 import { useState, useCallback } from 'react';
 import { galleryService } from '../Services/GalleryService.js';
-import { cacheManager } from '../Utils/CacheManager.js';
 
 export const useGallery = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
 
-  const fetchHighlights = useCallback(async (useCache = true) => {
+  const fetchHighlights = useCallback(async () => {
     try {
-      let highlights;
-      
-      if (useCache) {
-        highlights = await galleryService.fetchHighlights();
-      } else {
-        // Force refresh by clearing cache first
-        cacheManager.invalidate('highlights');
-        highlights = await galleryService.fetchHighlights();
-      }
-      
+      const highlights = await galleryService.fetchHighlights();
       return { success: true, highlights };
     } catch (error) {
       console.error('Error fetching highlights:', error);
@@ -138,12 +128,8 @@ export const useGallery = () => {
     }
   }, []);
 
-  // NEW: Fetch all event galleries
-  const fetchEventGalleries = useCallback((useCache = true) => {
-    if (!useCache) {
-      cacheManager.invalidate('gallery-events');
-    }
-    
+  // Fetch all event galleries
+  const fetchEventGalleries = useCallback(() => {
     return galleryService.fetchEventGalleries()
       .then(galleries => {
         return { success: true, galleries };
@@ -155,7 +141,7 @@ export const useGallery = () => {
       });
   }, []);
 
-  // NEW: Fetch specific event gallery
+  // Fetch specific event gallery
   const fetchEventGallery = useCallback((galleryId) => {
     return galleryService.getEventGallery(galleryId)
       .then(gallery => {
@@ -168,7 +154,7 @@ export const useGallery = () => {
       });
   }, []);
 
-  // IMPROVED: Delete event gallery
+  // Delete event gallery
   const deleteEventGallery = useCallback((galleryId) => {
     return galleryService.deleteEventGallery(galleryId)
       .then(() => {
@@ -181,7 +167,7 @@ export const useGallery = () => {
       });
   }, []);
 
-  // IMPROVED: Publish event gallery
+  // Publish event gallery
   const publishEventGallery = useCallback((galleryId) => {
     return galleryService.publishEventGallery(galleryId)
       .then(result => {
@@ -194,7 +180,7 @@ export const useGallery = () => {
       });
   }, []);
 
-  // IMPROVED: Remove image from gallery (not delete image completely)
+  // Remove image from gallery (not delete image completely)
   const removeImageFromGallery = useCallback((galleryId, eventImageId) => {
     return galleryService.removeImageFromGallery(galleryId, eventImageId)
       .then(() => {
@@ -207,7 +193,7 @@ export const useGallery = () => {
       });
   }, []);
 
-  // NEW: Upload additional images to existing gallery
+  // Upload additional images to existing gallery
   const uploadToExistingGallery = useCallback((galleryId, files, caption = "", startingDisplayOrder = 0) => {
     setIsUploading(true);
     setError(null);
@@ -238,29 +224,6 @@ export const useGallery = () => {
     setError(null);
   }, []);
 
-  // Cache utility methods
-  const refreshGalleryCache = useCallback(() => {
-    galleryService.refreshAllCaches();
-  }, []);
-
-  const getGalleryCacheInfo = useCallback(() => {
-    return {
-      stats: cacheManager.getStats(),
-      keys: {
-        highlights: cacheManager.generateKey('gallery', 'highlights'),
-        publicHighlights: cacheManager.generateKey('gallery', 'public-highlights'),
-        eventGalleries: cacheManager.generateKey('gallery', 'event-galleries')
-      }
-    };
-  }, []);
-
-  const clearGalleryCache = useCallback(() => {
-    cacheManager.invalidate('gallery');
-    cacheManager.invalidate('highlights');
-    cacheManager.invalidate('gallery-public');
-    cacheManager.invalidate('gallery-events');
-  }, []);
-
   return {
     // State
     isUploading,
@@ -281,11 +244,6 @@ export const useGallery = () => {
     publishEventGallery,
     removeImageFromGallery,
     clearError,
-    resetUpload,
-    
-    // Cache utilities
-    refreshGalleryCache,
-    getGalleryCacheInfo,
-    clearGalleryCache
+    resetUpload
   };
 };
