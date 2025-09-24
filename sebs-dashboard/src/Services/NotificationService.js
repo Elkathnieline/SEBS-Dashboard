@@ -1,14 +1,12 @@
+import { apiService } from './ApiService.js';
+
 class NotificationService {
   constructor() {
-    this.apiUrl = import.meta.env.VITE_DEV_API_URL || "";
+    this.apiUrl = apiService.getBaseUrl();
   }
 
   getAuthHeaders() {
-    const token = sessionStorage.getItem("backend-token");
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
+    return apiService.getAuthHeaders();
   }
 
   async fetchNotifications() {

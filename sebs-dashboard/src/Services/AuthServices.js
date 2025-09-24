@@ -1,9 +1,8 @@
 // src/services/AuthServices.js
-
-const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_DEV_API_URL || "http://localhost:3000";
+import { apiService } from './ApiService.js';
 
 export async function login(username, password) {
-  const res = await fetch(`${API_BASE}/api/Auth/login`, {
+  const res = await fetch(`${apiService.getBaseUrl()}/api/Auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -18,7 +17,7 @@ export async function login(username, password) {
 }
 
 export async function refreshToken() {
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
+  const res = await fetch(`${apiService.getBaseUrl()}/auth/refresh`, {
     method: "GET",
     credentials: "include",
   });

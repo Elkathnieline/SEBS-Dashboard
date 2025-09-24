@@ -1,14 +1,12 @@
+import { apiService } from './ApiService.js';
+
 class AnalyticsService {
   constructor() {
-    this.apiUrl = import.meta.env.VITE_DEV_API_URL || "http://localhost:8000";
+    this.apiUrl = apiService.getBaseUrl();
   }
 
   getAuthHeaders() {
-    const token = sessionStorage.getItem("backend-token");
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
+    return apiService.getAuthHeaders();
   }
 
   fetchTotalBookings() {
