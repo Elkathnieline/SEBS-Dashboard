@@ -6,10 +6,18 @@ class ApiService {
   }
 
   getApiUrl() {
-    // Check if we're in production environment
-    if (import.meta.env.VITE_ENVIRONMENT === 'production') {
+    // Check if we're in production environment (multiple ways)
+    const isProduction = import.meta.env.PROD || 
+                        import.meta.env.VITE_ENVIRONMENT === 'production';
+    
+    if (isProduction) {
       // Use the API URL set in Vercel environment variables
-      return import.meta.env.VITE_API_URL;
+      const prodUrl = import.meta.env.VITE_API_URL;
+      if (!prodUrl) {
+        console.error('VITE_API_URL not set in production environment');
+        throw new Error('Production API URL not configured');
+      }
+      return prodUrl;
     } else {
       // Development environment - use local API
       return import.meta.env.VITE_DEV_API_URL || 'http://localhost:5139';
