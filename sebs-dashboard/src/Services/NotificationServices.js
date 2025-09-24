@@ -1,8 +1,8 @@
-const API_BASE = import.meta.env.VITE_DEV_API_URL || "";
+import { apiService } from './ApiService.js';
 
 export function fetchNotifications(signal) {
   const token = sessionStorage.getItem("backend-token");
-  return fetch(`${API_BASE}/api/Notification`, {
+  return fetch(`${apiService.getBaseUrl()}/api/Notification`, {
     method: "GET",
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -18,7 +18,7 @@ export function fetchNotifications(signal) {
 // Mark a single notification as read (204 No Content expected)
 export function markNotificationRead(id, signal) {
   const token = sessionStorage.getItem("backend-token");
-  return fetch(`${API_BASE}/api/Notification/${id}/read`, {
+  return fetch(`${apiService.getBaseUrl()}/api/Notification/${id}/read`, {
     method: "PATCH",
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

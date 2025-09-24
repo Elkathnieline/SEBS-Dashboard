@@ -1,6 +1,8 @@
+import { apiService } from './ApiService.js';
+
 class GalleryService {
   constructor() {
-    this.apiUrl = import.meta.env.VITE_DEV_API_URL || "";
+    this.apiUrl = apiService.getBaseUrl();
   }
 
   getAuthHeaders() {
