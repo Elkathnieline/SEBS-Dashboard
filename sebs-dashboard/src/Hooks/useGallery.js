@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { galleryService } from '../Services/GalleryService.js';
+import { highlightsService } from '../Services/HighlightsService.js';
+import { eventGalleryService } from '../Services/EventGalleryService.js';
 
 export const useGallery = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -8,7 +9,7 @@ export const useGallery = () => {
 
   const fetchHighlights = useCallback(async () => {
     try {
-      const highlights = await galleryService.fetchHighlights();
+      const highlights = await highlightsService.fetchHighlights();
       return { success: true, highlights };
     } catch (error) {
       console.error('Error fetching highlights:', error);
@@ -23,7 +24,7 @@ export const useGallery = () => {
     setUploadProgress(0);
 
     try {
-      const result = await galleryService.uploadHighlights(files, caption, startingDisplayOrder);
+      const result = await highlightsService.uploadHighlights(files, caption, startingDisplayOrder);
       
       setIsUploading(false);
       setUploadProgress(100);
@@ -45,12 +46,11 @@ export const useGallery = () => {
     setUploadProgress(0);
 
     try {
-      const result = await galleryService.uploadImages(files, eventTitle);
+      const result = await eventGalleryService.uploadEventImages(files, eventTitle);
       
-      // Create event structure (this could also be moved to service)
-      const eventId = Date.now();
+      // Create event structure to match current format
       const newEvent = {
-        id: eventId,
+        id: result.galleryId,
         title: eventTitle,
         photos: result.photos,
         createdAt: new Date().toISOString(),
@@ -79,7 +79,7 @@ export const useGallery = () => {
     setUploadProgress(0);
 
     try {
-      const result = await galleryService.uploadEventImages(files, eventTitle);
+      const result = await eventGalleryService.uploadEventImages(files, eventTitle);
       
       // Create event structure to match current format
       const newEvent = {
@@ -108,7 +108,14 @@ export const useGallery = () => {
 
   const deleteImage = useCallback(async (id, type = 'image') => {
     try {
-      await galleryService.deleteImage(id, type);
+      if (type === 'highlight') {
+        await highlightsService.deleteHighlight(id);
+      } else if (type === 'event') {
+        await eventGalleryService.deleteEventImage(id);
+      } else {
+        // For generic images, use base method from either service
+        await highlightsService.deleteImage(id, type);
+      }
       return { success: true };
     } catch (error) {
       console.error('Delete error:', error);
@@ -119,7 +126,7 @@ export const useGallery = () => {
 
   const publishEvent = useCallback(async (eventId) => {
     try {
-      const result = await galleryService.publishEvent(eventId);
+      const result = await eventGalleryService.publishEventGallery(eventId);
       return { success: true, event: result };
     } catch (error) {
       console.error('Publish error:', error);
@@ -130,7 +137,7 @@ export const useGallery = () => {
 
   // Fetch all event galleries
   const fetchEventGalleries = useCallback(() => {
-    return galleryService.fetchEventGalleries()
+    return eventGalleryService.fetchEventGalleries()
       .then(galleries => {
         return { success: true, galleries };
       })
@@ -143,7 +150,7 @@ export const useGallery = () => {
 
   // Fetch specific event gallery
   const fetchEventGallery = useCallback((galleryId) => {
-    return galleryService.getEventGallery(galleryId)
+    return eventGalleryService.getEventGallery(galleryId)
       .then(gallery => {
         return { success: true, gallery };
       })
@@ -156,7 +163,7 @@ export const useGallery = () => {
 
   // Delete event gallery
   const deleteEventGallery = useCallback((galleryId) => {
-    return galleryService.deleteEventGallery(galleryId)
+    return eventGalleryService.deleteEventGallery(galleryId)
       .then(() => {
         return { success: true };
       })
@@ -169,7 +176,7 @@ export const useGallery = () => {
 
   // Publish event gallery
   const publishEventGallery = useCallback((galleryId) => {
-    return galleryService.publishEventGallery(galleryId)
+    return eventGalleryService.publishEventGallery(galleryId)
       .then(result => {
         return { success: true, gallery: result };
       })
@@ -180,9 +187,9 @@ export const useGallery = () => {
       });
   }, []);
 
-  // Remove image from gallery (not delete image completely)
+  // Remove image from gallery (delete event image)
   const removeImageFromGallery = useCallback((galleryId, eventImageId) => {
-    return galleryService.removeImageFromGallery(galleryId, eventImageId)
+    return eventGalleryService.deleteEventImage(eventImageId)
       .then(() => {
         return { success: true };
       })
@@ -199,7 +206,7 @@ export const useGallery = () => {
     setError(null);
     setUploadProgress(0);
 
-    return galleryService.uploadToExistingGallery(galleryId, files, caption, startingDisplayOrder)
+    return eventGalleryService.uploadToExistingGallery(galleryId, files, caption, startingDisplayOrder)
       .then(result => {
         setIsUploading(false);
         setUploadProgress(100);

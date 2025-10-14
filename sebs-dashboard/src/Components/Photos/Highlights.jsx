@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Star, Edit3, Trash2, Plus, Upload, AlertCircle } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
 import { useGallery } from '../../Hooks/useGallery.js';
-import { galleryService } from '../../Services/GalleryService.js';
+import { highlightsService } from '../../Services/HighlightsService.js';
 
 export default function Highlights({ highlights, onUploadHighlight, onRemoveHighlight, onPreviewPhoto, isLoading = false }) {
   const { isDarkTheme } = useTheme();
@@ -67,7 +67,7 @@ export default function Highlights({ highlights, onUploadHighlight, onRemoveHigh
     
     // Try S3 key as fallback (for newly uploaded images)
     if (photo.s3Key) {
-      return galleryService.getImageUrl(photo.s3Key, width, height);
+      return highlightsService.getImageUrl(photo.s3Key, width, height);
     }
     
     // Return null to prevent rendering img with empty src

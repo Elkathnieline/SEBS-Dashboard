@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+import { useTheme } from '../../Contexts/ThemeContext.jsx';
 
 export default function Calendar() {
-  // Set default date to today
-  const [currentDate, setCurrentDate] = useState(new Date()); // Default to today
+  const { isDarkTheme } = useTheme();
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const scrollRef = useRef(null);
 
   // Sample events data matching the screenshot exactly
   const sampleEvents = [
@@ -159,7 +163,9 @@ export default function Calendar() {
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
       days.push(
-        <div key={`empty-${i}`} className="h-14 border border-gray-200 bg-white"></div>
+        <div key={`empty-${i}`} className={`h-14 border ${
+          isDarkTheme ? 'border-gray-600 bg-gray-800' : 'border-gray-200 bg-white'
+        }`}></div>
       );
     }
     
@@ -171,10 +177,16 @@ export default function Calendar() {
       days.push(
         <div 
           key={day} 
-          className="h-14 border border-gray-200 p-1 relative cursor-pointer hover:bg-gray-50 transition-colors bg-white overflow-hidden"
+          className={`h-14 border p-1 relative cursor-pointer transition-colors overflow-hidden ${
+            isDarkTheme 
+              ? 'border-gray-600 bg-gray-800 hover:bg-gray-700' 
+              : 'border-gray-200 bg-white hover:bg-gray-50'
+          }`}
           onClick={() => handleDayClick(day)}
         >
-          <span className="text-xs font-medium text-gray-700">{day}</span>
+          <span className={`text-xs font-medium ${
+            isDarkTheme ? 'text-gray-300' : 'text-gray-700'
+          }`}>{day}</span>
           <div className="mt-1 overflow-hidden">
             {/* Regular single-cell events */}
             {dayEvents.slice(0, 1).map(event => (
@@ -195,7 +207,9 @@ export default function Calendar() {
             
             {/* Show +more indicator if there are more events */}
             {dayEvents.length > 1 && (
-              <div className="text-xs text-gray-500 mt-1">
+              <div className={`text-xs mt-1 ${
+                isDarkTheme ? 'text-gray-400' : 'text-gray-500'
+              }`}>
                 +{dayEvents.length - 1} more
               </div>
             )}
@@ -233,45 +247,129 @@ export default function Calendar() {
     return days;
   };
 
+  // Auto-scroll to current month when dropdown opens
+  useEffect(() => {
+    if (isDropdownOpen && scrollRef.current) {
+      const currentMonthElement = scrollRef.current.children[currentMonth];
+      if (currentMonthElement) {
+        currentMonthElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+    }
+  }, [isDropdownOpen, currentMonth]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const selectMonth = (monthIndex) => {
+    setCurrentDate(new Date(currentYear, monthIndex, 1));
+    setIsDropdownOpen(false);
+  };
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 w-full h-full flex flex-col overflow-hidden">
+    <div className={`rounded-lg border w-full h-full flex flex-col overflow-hidden ${
+      isDarkTheme 
+        ? 'bg-gray-800 border-gray-700' 
+        : 'bg-white border-gray-200'
+    }`}>
       <div className="p-4 flex-shrink-0">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <h2 className={`text-lg font-bold flex items-center gap-2 ${
+            isDarkTheme ? 'text-white' : 'text-gray-800'
+          }`}>
             <CalendarIcon size={20} className="text-primary" />
             Calendar
-            <span className="ml-2 badge badge-outline badge-lg text-base-content bg-base-100 border-base-300">{currentYear}</span>
+            <span className={`ml-2 badge badge-outline badge-lg ${
+              isDarkTheme 
+                ? 'text-gray-300 bg-gray-700 border-gray-600' 
+                : 'text-base-content bg-base-100 border-base-300'
+            }`}>{currentYear}</span>
           </h2>
           
-          {/* Month Dropdown */}
-          <div className="dropdown dropdown-end">
-            <div tabIndex={0} role="button" className="btn btn-ghost btn-sm gap-2 hover:bg-gray-100">
-              <CalendarIcon size={16} className="text-gray-500" />
-              <span className="text-gray-700">{monthNames[currentMonth]}</span>
+          {/* Month Dropdown with Primary Color Hover */}
+          <div className="dropdown dropdown-end" ref={dropdownRef}>
+            <button
+              className={`btn btn-ghost btn-sm gap-2 hover:bg-primary hover:text-primary-content ${
+                isDarkTheme ? 'text-gray-300' : 'text-gray-700'
+              }`}
+              onClick={toggleDropdown}
+            >
+              <CalendarIcon size={16} className={`${
+                isDarkTheme ? 'text-gray-400' : 'text-gray-500'
+              }`} />
+              <span className={`${
+                isDarkTheme ? 'text-gray-300' : 'text-gray-700'
+              }`}>{monthNames[currentMonth]}</span>
               <div className="flex flex-col">
-                <ChevronUp size={10} className="text-gray-500" />
-                <ChevronDown size={10} className="text-gray-500" />
+                <ChevronUp size={10} className={`${
+                  isDarkTheme ? 'text-gray-400' : 'text-gray-500'
+                }`} />
+                <ChevronDown size={10} className={`${
+                  isDarkTheme ? 'text-gray-400' : 'text-gray-500'
+                }`} />
               </div>
-            </div>
-            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow-lg border border-base-300">
-              {monthNames.map((month, index) => (
-                <li key={month}>
-                  <a 
-                    onClick={() => setCurrentDate(new Date(currentYear, index, 1))}
-                    className={`${index === currentMonth ? 'active' : ''}`}
+            </button>
+            
+            {isDropdownOpen && (
+              <div 
+                ref={scrollRef}
+                className={`dropdown-content rounded-box z-[1] w-48 shadow-lg border overflow-y-auto scrollbar-thin ${
+                  isDarkTheme 
+                    ? 'bg-gray-800 border-gray-600 scrollbar-thumb-gray-600 scrollbar-track-gray-800' 
+                    : 'bg-base-100 border-base-300 scrollbar-thumb-gray-300 scrollbar-track-gray-100'
+                }`}
+                style={{ 
+                  height: 'calc(6 * 2.75rem)',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: isDarkTheme ? '#4B5563 #1F2937' : '#D1D5DB #F3F4F6'
+                }}
+              >
+                {monthNames.map((month, index) => (
+                  <button
+                    key={month}
+                    onClick={() => selectMonth(index)}
+                    className={`w-full px-4 py-3 text-left transition-colors duration-200 border-b last:border-b-0 flex items-center hover:bg-primary hover:text-primary-content ${
+                      index === currentMonth 
+                        ? 'bg-primary text-primary-content' 
+                        : isDarkTheme 
+                          ? 'text-gray-300 border-gray-600' 
+                          : 'text-gray-700 border-gray-200'
+                    }`}
+                    style={{ minHeight: '2.75rem' }}
                   >
                     {month}
-                  </a>
-                </li>
-              ))}
-            </ul>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Error State */}
         {error && (
-          <div className="alert alert-warning mb-4">
+          <div className={`alert alert-warning mb-4 ${
+            isDarkTheme 
+              ? 'bg-yellow-900 border-yellow-700 text-yellow-100' 
+              : ''
+          }`}>
             <span>Using sample data: {error}</span>
           </div>
         )}
@@ -286,11 +384,17 @@ export default function Calendar() {
           </div>
         ) : (
           /* Calendar Grid */
-          <div className="border border-gray-200 rounded-lg overflow-hidden h-full flex flex-col">
+          <div className={`border rounded-lg overflow-hidden h-full flex flex-col ${
+            isDarkTheme ? 'border-gray-600' : 'border-gray-200'
+          }`}>
             <div className="grid grid-cols-7 flex-shrink-0">
-              {/* Day headers with numbers */}
-              {['1', '2', '3', '4', '5', '6', '7'].map((day, index) => (
-                <div key={day} className="p-2 text-center text-xs font-medium text-gray-600 bg-gray-50 border-r border-gray-200 last:border-r-0 h-8">
+              {/* Day headers */}
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                <div key={day} className={`p-2 text-center text-xs font-medium border-r last:border-r-0 h-8 ${
+                  isDarkTheme 
+                    ? 'text-gray-400 bg-gray-700 border-gray-600' 
+                    : 'text-gray-600 bg-gray-50 border-gray-200'
+                }`}>
                   {day}
                 </div>
               ))}
