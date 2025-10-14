@@ -91,11 +91,11 @@ export default function BookingRequests() {
 
     // Get numeric status value from enum mapper
     let numericStatus;
-    if (newStatus === "canceled") {
+    if (newStatus === "Canceled") {
       numericStatus = 4; // Cancelled status
-    } else if (newStatus === "confirmed") {
+    } else if (newStatus === "Confirmed") {
       numericStatus = 2; // Confirmed status
-    } else if (newStatus === "awaiting confirmation") {
+    } else if (newStatus === "Pending") {
       numericStatus = 1; // Awaiting Confirmation status
     } else {
       numericStatus = enumMapper.getStatusValue(newStatus) || 1; // Default to awaiting confirmation
@@ -168,10 +168,10 @@ export default function BookingRequests() {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      confirmed: { class: "badge-success", text: "Confirmed" },
-      "awaiting confirmation": { class: "badge-warning", text: "Pending" },
-      cancelled: { class: "badge-error", text: "Cancelled" },
-      declined: { class: "badge-error", text: "Declined" },
+      Confirmed: { class: "badge-success", text: "Confirmed" }, // green
+      Pending: { class: "badge-warning", text: "Pending" },     // yellow
+      Cancelled: { class: "badge-error", text: "Cancelled" },   // red
+      Declined: { class: "badge-error", text: "Declined" },     // red
     };
 
     const config = statusConfig[status] || { class: "badge-ghost", text: status };
@@ -334,6 +334,26 @@ export default function BookingRequests() {
                     <div className="flex-shrink-0">
                       {getStatusBadge(booking.status)}
                     </div>
+                    {booking.status === "Pending" && (
+                      <div className="flex gap-2">
+                        <button
+                          className="btn btn-success btn-sm flex items-center gap-1"
+                          onClick={() => handleStatusUpdate(booking.id, "Confirmed")}
+                          title="Approve booking"
+                        >
+                          <RefreshCw size={14} />
+                          Approve
+                        </button>
+                        <button
+                          className="btn btn-error btn-sm flex items-center gap-1"
+                          onClick={() => handleStatusUpdate(booking.id, "canceled")}
+                          title="Decline booking"
+                        >
+                          <AlertCircle size={14} />
+                          Decline
+                        </button>
+                      </div>
+                    )}
                     <button
                       onClick={() => handleEditBooking(booking)}
                       className="btn btn-sm btn-outline flex-shrink-0"
