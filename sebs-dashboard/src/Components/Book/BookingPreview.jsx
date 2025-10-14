@@ -119,17 +119,17 @@ export default function BookingPreview({
        
 
             {/* Actions for awaiting confirmation bookings */}
-            {booking.status === 'awaitingconfirmation' && (
+            {booking.status === 'Pending' && (
               <div className="flex gap-3 justify-center">
                 <button
-                  onClick={() => handleStatusUpdate('confirmed')}
+                  onClick={() => handleStatusUpdate('Confirmed')}
                   className="btn btn-success flex-1"
                 >
                   <Check size={16} />
                   Approve Booking
                 </button>
                 <button
-                  onClick={() => handleStatusUpdate('declined')}
+                  onClick={() => handleStatusUpdate('Declined')}
                   className="btn btn-error flex-1"
                 >
                   <X size={16} />
