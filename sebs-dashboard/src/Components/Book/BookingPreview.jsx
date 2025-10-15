@@ -149,18 +149,18 @@ export default function BookingPreview({
                 </div>
                 <div className="flex justify-center">
                   <button
-                    onClick={() => handleStatusUpdate('declined')}
+                    onClick={() => handleStatusUpdate('Canceled')}
                     className="btn btn-error"
                   >
                     <X size={16} />
-                    Decline Booking
+                    Cancel Booking
                   </button>
                 </div>
               </div>
             )}
 
             {/* Status display for declined bookings */}
-            {booking.status === 'declined' && (
+            {booking.status === 'Declined' && (
               <div className="text-center">
                 <div className="badge badge-error badge-lg">
                   <X size={16} className="mr-2" />

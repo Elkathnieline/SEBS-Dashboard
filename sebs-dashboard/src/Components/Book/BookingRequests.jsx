@@ -67,10 +67,10 @@ export default function BookingRequests() {
       .fetchBookingRequests()
       .then((data) => {
         console.log("Raw API data:", data);
-        // Filter out declined bookings (status 3) and transform data
-        const filteredData = data.filter((booking) => booking.status !== 3);
-        const transformedData = transformBookingData(filteredData);
-        console.log("Transformed bookings:", transformedData);
+        // Filter to show only pending bookings (status 1)
+        const pendingData = data.filter((booking) => booking.status === 1);
+        const transformedData = transformBookingData(pendingData);
+        console.log("Transformed pending bookings:", transformedData);
         setBookings(transformedData);
         setLoading(false);
       })
@@ -91,7 +91,7 @@ export default function BookingRequests() {
 
     // Get numeric status value from enum mapper
     let numericStatus;
-    if (newStatus === "Canceled") {
+    if (newStatus === "canceled") {
       numericStatus = 4; // Cancelled status
     } else if (newStatus === "Confirmed") {
       numericStatus = 2; // Confirmed status
@@ -101,34 +101,20 @@ export default function BookingRequests() {
       numericStatus = enumMapper.getStatusValue(newStatus) || 1; // Default to awaiting confirmation
     }
 
-    // Optimistic update
-    if (newStatus === "canceled") {
-      setBookings((prev) => {
-        const updated = prev.filter((booking) => booking.id !== bookingId);
-        console.log("After decline filter:", updated);
-        return updated;
-      });
+    // Optimistic update - remove booking from pending list since it's no longer pending
+    setBookings((prev) => {
+      const updated = prev.filter((booking) => booking.id !== bookingId);
+      console.log("After status update filter:", updated);
+      return updated;
+    });
 
+    // Dispatch custom event for declined bookings
+    if (newStatus === "canceled") {
       window.dispatchEvent(
         new CustomEvent("bookingDeclined", {
           detail: { bookingId, booking: bookingToUpdate },
         })
       );
-    } else {
-      setBookings((prev) => {
-        const updated = prev.map((booking) =>
-          booking.id === bookingId
-            ? {
-                ...booking,
-                status: newStatus,
-                statusDisplay:
-                  enumMapper.getBookingStatus(numericStatus).displayName,
-              }
-            : booking
-        );
-        console.log("After status update:", updated);
-        return updated;
-      });
     }
 
     // Close modal
@@ -182,7 +168,7 @@ export default function BookingRequests() {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="loading loading-spinner loading-lg"></div>
-        <span className="ml-4">Loading booking requests...</span>
+        <span className="ml-4">Loading pending booking requests...</span>
       </div>
     );
   }
@@ -210,7 +196,7 @@ export default function BookingRequests() {
             isDarkTheme ? "text-white" : "text-base-content"
           }`}
         >
-          Booking Requests
+          Pending Booking Requests
         </h2>
         <button
           className="btn btn-ghost btn-sm"
@@ -229,7 +215,8 @@ export default function BookingRequests() {
           }`}
         >
           <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-lg">No booking requests found</p>
+          <p className="text-lg">No pending booking requests found</p>
+          <p className="text-sm mt-2">All requests have been processed</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -247,11 +234,7 @@ export default function BookingRequests() {
                   <div className="lg:col-span-2 flex items-center gap-3">
                     <div className="avatar placeholder flex-shrink-0">
                       <div
-                        className={`w-12 h-12 rounded-full ${
-                          isDarkTheme
-                            ? "bg-gray-700"
-                            : "bg-primary text-primary-content"
-                        }`}
+                        className={`w-12 h-12 rounded-full bg-warning text-warning-content`}
                       >
                         <span className="text-lg">
                           {booking.client.name.charAt(0)}
@@ -334,26 +317,7 @@ export default function BookingRequests() {
                     <div className="flex-shrink-0">
                       {getStatusBadge(booking.statusDisplay)}
                     </div>
-                    {booking.status === "Pending" && (
-                      <div className="flex gap-2">
-                        <button
-                          className="btn btn-success btn-sm flex items-center gap-1"
-                          onClick={() => handleStatusUpdate(booking.id, "Confirmed")}
-                          title="Approve booking"
-                        >
-                          <RefreshCw size={14} />
-                          Approve
-                        </button>
-                        <button
-                          className="btn btn-error btn-sm flex items-center gap-1"
-                          onClick={() => handleStatusUpdate(booking.id, "canceled")}
-                          title="Decline booking"
-                        >
-                          <AlertCircle size={14} />
-                          Decline
-                        </button>
-                      </div>
-                    )}
+                 
                     <button
                       onClick={() => handleEditBooking(booking)}
                       className="btn btn-sm btn-outline flex-shrink-0"
