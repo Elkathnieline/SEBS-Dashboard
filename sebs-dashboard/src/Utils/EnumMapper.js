@@ -48,7 +48,7 @@ export class EnumMapper {
 
   getStatusValue(name) {
     for (const [value, status] of this.bookingStatuses) {
-      if (status.name.toLowerCase() === name.toLowerCase()) {
+      if (status.displayName === name) {
         return value;
       }
     }

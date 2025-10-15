@@ -45,13 +45,13 @@ export const useBookings = (filterStatus = null) => {
     const bookingToUpdate = bookings.find(b => b.id === bookingId);
     if (!bookingToUpdate) return { success: false, error: 'Booking not found' };
 
-    // Get numeric status value
+    // Get numeric status value using display names
     let numericStatus;
-    if (newStatus === "canceled") {
+    if (newStatus === "Cancelled") {
       numericStatus = 4;
-    } else if (newStatus === "confirmed") {
+    } else if (newStatus === "Confirmed") {
       numericStatus = 2;
-    } else if (newStatus === "awaiting confirmation") {
+    } else if (newStatus === "Pending") {
       numericStatus = 1;
     } else {
       numericStatus = enumMapper.getStatusValue(newStatus) || 1;

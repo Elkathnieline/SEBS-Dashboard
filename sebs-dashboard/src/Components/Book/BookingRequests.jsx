@@ -332,7 +332,7 @@ export default function BookingRequests() {
 
                   <div className="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0">
                     <div className="flex-shrink-0">
-                      {getStatusBadge(booking.status)}
+                      {getStatusBadge(booking.statusDisplay)}
                     </div>
                     {booking.status === "Pending" && (
                       <div className="flex gap-2">
