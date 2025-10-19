@@ -12,7 +12,7 @@ import "./App.css";
 // Import ThemeProvider
 import { ThemeProvider } from "./Contexts/ThemeContext.jsx";
 
-// Import your components
+
 import Root from "./Routes/Root.jsx";
 import Dashboard from "./Routes/Dashboard.jsx";
 import Settings from "./Routes/Settings.jsx";

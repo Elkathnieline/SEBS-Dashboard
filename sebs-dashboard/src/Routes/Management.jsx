@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Settings, AlertCircle } from 'lucide-react';
 import { useTheme } from '../Contexts/ThemeContext.jsx';
 import BookingRequests from '../Components/Book/BookingRequests.jsx';
-import DeclinedBookings from '../Components/Book/DeclinedBookings.jsx';
+import ProcessedBookings from '../Components/Book/ProcessedBookings.jsx';
 
 export default function Management() {
   const { isDarkTheme } = useTheme();
@@ -68,7 +68,7 @@ export default function Management() {
               </button>
             </div>
           )}
-          <DeclinedBookings setError={setDeclineError} />
+          <ProcessedBookings setError={setDeclineError} />
         </div>
       </div>
     </div>
