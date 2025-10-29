@@ -31,24 +31,7 @@ export default function Header() {
           {/* Left side - Empty for spacing */}
           <div className="flex-1 lg:flex-none lg:w-64"></div>
 
-          {/* Center - Search Bar */}
-          <div className="flex-1 max-w-md mx-4 lg:mx-8">
-            <form onSubmit={handleSearch} className="relative">
-              <div className="relative">
-                <Search 
-                  size={20} 
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50" 
-                />
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input input-bordered w-full pl-10 pr-4 bg-base-200 border-base-300 focus:border-primary focus:outline-none text-sm"
-                />
-              </div>
-            </form>
-          </div>
+    
 
           {/* Right side - Action Icons */}
           <div className="flex-1 flex justify-end">
@@ -105,14 +88,7 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* Chat */}
-              <button
-                className="btn btn-ghost btn-circle hover:bg-base-200"
-                onClick={handleChatClick}
-                aria-label="Chat"
-              >
-                <MessageSquare size={20} className="text-base-content/70" />
-              </button>
+              
             </div>
           </div>
         </div>

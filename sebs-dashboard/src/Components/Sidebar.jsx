@@ -60,6 +60,11 @@ export default function Sidebar() {
       to: "/gallery",
       icon: Image,
       label: "Gallery"
+    },
+    {
+      to: "/services",
+      icon: BookOpen,
+      label: "Services"
     }
   ];
 
