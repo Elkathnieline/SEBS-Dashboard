@@ -22,6 +22,7 @@ import Gallery from "./Routes/Gallery.jsx";
 import RequireAuth from "./Components/Security/requireAuth.jsx";
 import Login from "./Routes/Login.jsx";
 import ErrorPage from "./ErrorPage.jsx";
+import Services from "./Routes/Services.jsx";
 import { AuthProvider } from "./Contexts/AuthContext.jsx";
 
 const router = createBrowserRouter(
@@ -39,6 +40,7 @@ const router = createBrowserRouter(
           <Route path="gallery" element={<Gallery />} />
           <Route path="management" element={<Management />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="services" element={<Services />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<ErrorPage />} />
         </Route>
