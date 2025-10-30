@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
     if (token) {
       sessionStorage.setItem("backend-token", token);
       const { exp, ...payload } = jwtDecode(token);
-      setUser(payload);
+      setUser(payload); // Keep user data separate from token metadata
     } else {
       sessionStorage.removeItem("backend-token");
       setUser(null);
@@ -41,8 +41,19 @@ export function AuthProvider({ children }) {
 
   const isAdmin = () => user?.role === "Admin";
 
+  const isTokenValid = () => {
+    const token = sessionStorage.getItem("backend-token");
+    if (!token) return false;
+    try {
+      const { exp } = jwtDecode(token);
+      return exp > Date.now() / 1000;
+    } catch {
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ user, login, logout, isAdmin, isTokenValid }}>
       {children}
     </AuthContext.Provider>
   );

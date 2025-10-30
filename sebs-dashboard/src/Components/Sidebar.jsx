@@ -81,13 +81,17 @@ export default function Sidebar() {
     <div className="h-full flex flex-col">
       {/* Logo Section */}
       <div className="p-6 flex-shrink-0">
-        <NavLink to="/" className="block" onClick={closeMobileMenu}>
-          <h1 className="text-2xl font-bold text-gray-800">logo</h1>
+        <NavLink to="/" className="block " onClick={closeMobileMenu}>
+          <img 
+            src="/image/Psalm and Platter.png" 
+            alt="Psalm and Platter Logo" 
+            className=" w-auto h-12"
+          />
         </NavLink>
       </div>
 
       {/* Navigation Section */}
-      <nav className="flex-1 px-4 py-2 overflow-y-auto">
+      <nav className="flex-1 px-4 overflow-y-auto">
         <ul className="space-y-3">
           {navigationItems.map((item) => {
             const IconComponent = item.icon;

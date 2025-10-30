@@ -7,6 +7,7 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
   const { isDarkTheme } = useTheme();
   const [eventTitle, setEventTitle] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadStep, setUploadStep] = useState(''); // 'creating', 'uploading', 'complete'
   
   const { 
     isUploading, 
@@ -19,6 +20,18 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
 
   // All uploads create events (even single photos)
   const requiresTitle = selectedFiles.length > 0;
+
+  const getProgressMessage = () => {
+    if (!isUploading) return '';
+    
+    if (uploadProgress < 30) {
+      return 'Creating event gallery...';
+    } else if (uploadProgress < 100) {
+      return `Uploading ${selectedFiles.length} photo${selectedFiles.length !== 1 ? 's' : ''}...`;
+    } else {
+      return 'Complete!';
+    }
+  };
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -103,7 +116,7 @@ export default function PhotoUpload({ onUpload, onEventUpload }) {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className={isDarkTheme ? 'text-gray-300' : 'text-base-content'}>
-                  Uploading photos...
+                  {getProgressMessage()}
                 </span>
                 <span className={isDarkTheme ? 'text-gray-300' : 'text-base-content'}>
                   {uploadProgress}%

@@ -135,56 +135,86 @@ class EventGalleryService extends BaseGalleryService {
     });
   }
 
-  async uploadEventImages(files, eventTitle) {
-    const formData = new FormData();
-    
-    Array.from(files).forEach((file) => {
-      formData.append("Files", file);
-    });
-    
-    formData.append("Title", eventTitle);
-
-    const response = await fetch(`${this.apiUrl}/api/Event-Gallery/upload`, {
+  // Create event gallery (Step 1 of 2-step upload)
+  createEventGallery(eventTitle) {
+    return fetch(`${this.apiUrl}/api/Event-Gallery/Create`, {
       method: "POST",
-      headers: this.getAuthHeaders(),
-      body: formData,
+      headers: {
+        ...this.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        Title: eventTitle,
+        IsPublished: false
+      }),
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json()
+          .catch(() => ({ message: "Failed to create event gallery" }))
+          .then(errorData => {
+            throw new Error(errorData.message || "Failed to create event gallery");
+          });
+      }
+      return response.json();
+    })
+    .then(gallery => {
+      return {
+        eventGalleryId: gallery.eventGalleryId,
+        title: gallery.title,
+        isPublished: gallery.isPublished,
+        createdAt: gallery.createdAt
+      };
     });
+  }
 
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: "Failed to upload event images" }));
-      throw new Error(errorData.message || "Failed to upload event images");
+  // Two-step upload: Create gallery, then upload images
+  async uploadEventImages(files, eventTitle, onProgress) {
+    let createdGalleryId = null;
+    
+    try {
+      // Step 1: Create event gallery
+      if (onProgress) onProgress({ step: 'creating', progress: 10 });
+      
+      const gallery = await this.createEventGallery(eventTitle);
+      createdGalleryId = gallery.eventGalleryId;
+      
+      if (onProgress) onProgress({ step: 'uploading', progress: 30 });
+      
+      // Step 2: Upload images to the created gallery
+      const result = await this.uploadToExistingGallery(
+        createdGalleryId, 
+        files, 
+        "", // caption
+        0   // startingDisplayOrder
+      );
+      
+      if (onProgress) onProgress({ step: 'complete', progress: 100 });
+      
+      // Return combined result
+      return {
+        photos: result.photos,
+        eventTitle: eventTitle,
+        eventGalleryId: createdGalleryId,
+        errors: result.errors || [],
+        totalFiles: result.totalFiles || files.length,
+        successCount: result.successCount || result.photos.length,
+        errorCount: result.errorCount || 0,
+      };
+      
+    } catch (error) {
+      // If upload failed and we created a gallery, delete it
+      if (createdGalleryId) {
+        try {
+          await this.deleteEventGallery(createdGalleryId);
+          console.log(`Cleaned up empty gallery ${createdGalleryId} after upload failure`);
+        } catch (deleteError) {
+          console.error('Failed to cleanup gallery:', deleteError);
+        }
+      }
+      
+      throw error;
     }
-
-    const result = await response.json();
-
-    // Transform response to match expected format
-    const photos = result.successfulUploads?.map((upload) => ({
-      id: upload.image?.imageId,
-      eventImageId: upload.eventImageId,
-      galleryId: result.eventGalleryId,
-      url: upload.imageUrl ? `${this.apiUrl}${upload.imageUrl}` : this.getImageUrl(upload.image?.s3Key),
-      caption: upload.image?.caption || upload.image?.fileName?.split(".")[0] || "",
-      uploadDate: upload.image?.uploadedAt || new Date().toISOString(),
-      originalName: upload.image?.fileName,
-      size: upload.image?.fileSize,
-      type: upload.image?.contentType,
-      displayOrder: upload.displayOrder,
-      fileName: upload.image?.fileName,
-      width: upload.image?.width,
-      height: upload.image?.height,
-    })).filter(photo => photo.url) || [];
-
-    return {
-      photos,
-      eventTitle,
-      galleryId: result.eventGalleryId,
-      errors: result.errors || [],
-      totalFiles: result.totalFiles || files.length,
-      successCount: result.successCount || photos.length,
-      errorCount: result.errorCount || 0,
-    };
   }
 
   uploadToExistingGallery(galleryId, files, caption = "", startingDisplayOrder = 0) {
