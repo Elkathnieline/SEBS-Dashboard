@@ -79,7 +79,16 @@ export const useGallery = () => {
     setUploadProgress(0);
 
     try {
-      const result = await eventGalleryService.uploadEventImages(files, eventTitle);
+      // Progress callback for two-step upload
+      const handleProgress = ({ step, progress }) => {
+        setUploadProgress(progress);
+      };
+
+      const result = await eventGalleryService.uploadEventImages(
+        files, 
+        eventTitle,
+        handleProgress
+      );
       
       // Create event structure to match current format
       const newEvent = {
