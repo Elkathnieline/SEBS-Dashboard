@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Check, Clock, X, ChevronRight, Upload } from 'lucide-react';
 import { NavLink } from "react-router-dom";
+import analyticsService from "../../Services/AnalyticsService.js";
 
 export default function RightSidebar() {
   const [bookingStats, setBookingStats] = useState({
@@ -15,38 +16,27 @@ export default function RightSidebar() {
     fetchBookingStats();
   }, []);
 
-  const fetchBookingStats = async () => {
+  const fetchBookingStats = () => {
     setLoading(true);
-    try {
-      const token = sessionStorage.getItem("backend-token");
-      if (!token) {
+    setError(null);
+
+    analyticsService.fetchBookingStats()
+      .then((data) => {
+        console.log('RightSidebar - Booking stats fetched:', data);
+        setBookingStats({
+          accepted: data.accepted ?? 0,
+          pending: data.pending ?? 0,
+          declined: data.declined ?? 0,
+        });
+      })
+      .catch((err) => {
+        setError(err.message);
+        setBookingStats({ accepted: 0, pending: 0, declined: 0 });
+        console.error('RightSidebar - Error fetching booking stats:', err);
+      })
+      .finally(() => {
         setLoading(false);
-        return;
-      }
-
-      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_DEV_API_URL || "";
-      const response = await fetch(`${apiUrl}/api/Analytics/booking-stats`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
-
-      if (!response.ok) throw new Error('Failed to fetch booking stats');
-      
-      const data = await response.json();
-      console.log('Booking stats fetched:', data);
-      setBookingStats({
-        accepted: data.accepted ?? 0,
-        pending: data.pending ?? 0,
-        declined: data.declined ?? 0,
-      });
-    } catch (err) {
-      setError(err.message);
-      setBookingStats({ accepted: 0, pending: 0, declined: 0 });
-      console.error('Error fetching booking stats:', err);
-    } finally {
-      setLoading(false);
-    }
   };
 
 

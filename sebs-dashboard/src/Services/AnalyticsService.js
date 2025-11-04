@@ -19,10 +19,17 @@ class AnalyticsService {
       }
       return res.json();
     })
-    .then((data) => data.total ?? 0)
+    .then((data) => {
+      console.log('AnalyticsService - Total Bookings Response:', data);
+      // Handle both { total: X } and direct number response
+      if (typeof data === 'number') {
+        return data;
+      }
+      return data.total ?? 0;
+    })
     .catch((error) => {
       console.error('Error fetching total bookings:', error);
-      return 182; // fallback value
+      return 0; // Return 0 instead of fallback to show real error
     });
   }
 
@@ -36,10 +43,17 @@ class AnalyticsService {
       }
       return res.json();
     })
-    .then((data) => data.total ?? 0)
+    .then((data) => {
+      console.log('AnalyticsService - Total Site Visits Response:', data);
+      // Handle both { total: X } and direct number response
+      if (typeof data === 'number') {
+        return data;
+      }
+      return data.total ?? 0;
+    })
     .catch((error) => {
       console.error('Error fetching total site visits:', error);
-      return 400; // fallback value
+      return 0; // Return 0 instead of fallback to show real error
     });
   }
 
@@ -96,6 +110,72 @@ class AnalyticsService {
         bookings: [12, 19, 3, 5, 2, 3],
         visits: [65, 59, 80, 81, 56, 55]
       };
+    });
+  }
+
+  fetchBookingChartByYear(year = '2025') {
+    return fetch(`${this.apiUrl}/api/Analytics/booking-chart?year=${year}`, {
+      headers: this.getAuthHeaders(),
+      credentials: 'include',
+    })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log('AnalyticsService - Booking Chart Response:', data);
+      return Array.isArray(data) ? data : [];
+    })
+    .catch((error) => {
+      console.error('Error fetching booking chart by year:', error);
+      return [];
+    });
+  }
+
+  fetchBookingStats() {
+    return fetch(`${this.apiUrl}/api/Analytics/booking-stats`, {
+      headers: this.getAuthHeaders(),
+    })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log('AnalyticsService - Booking Stats Response:', data);
+      return {
+        accepted: data.accepted ?? 0,
+        pending: data.pending ?? 0,
+        declined: data.declined ?? 0,
+      };
+    })
+    .catch((error) => {
+      console.error('Error fetching booking stats:', error);
+      throw error;
+    });
+  }
+
+  fetchCalendarEvents() {
+    return fetch(`${this.apiUrl}/api/Analytics/calendar`, {
+      headers: this.getAuthHeaders(),
+      credentials: 'include',
+    })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log('AnalyticsService - Calendar Events Response:', data);
+      return Array.isArray(data) ? data : [];
+    })
+    .catch((error) => {
+      console.error('Error fetching calendar events:', error);
+      throw error;
     });
   }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronUp, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
+import analyticsService from '../../Services/AnalyticsService.js';
 
 export default function Calendar() {
   const { isDarkTheme } = useTheme();
@@ -76,25 +77,9 @@ export default function Calendar() {
     setLoading(true);
     setError(null);
 
-    const token = sessionStorage.getItem("backend-token");
-    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_DEV_API_URL || "http://localhost:3000";
-
-    if (!token) {
-      setEvents(sampleEvents);
-      setLoading(false);
-      return;
-    }
-
-    fetch(`${apiUrl}/api/Analytics/calendar`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(response => {
-        if (!response.ok) throw new Error("Failed to fetch calendar data");
-        return response.json();
-      })
-      .then(data => {
+    analyticsService.fetchCalendarEvents()
+      .then((data) => {
+        console.log('Calendar - Events fetched:', data);
         // Filter events for the current month and year
         const filtered = data.filter(event => {
           const eventDate = new Date(event.date);
@@ -110,9 +95,10 @@ export default function Calendar() {
             : "bg-purple-300 text-white",
           span: 1
         }));
-        setEvents(filtered);
+        setEvents(filtered.length > 0 ? filtered : sampleEvents);
       })
-      .catch(err => {
+      .catch((err) => {
+        console.error('Calendar - Error fetching events:', err);
         setError(err.message);
         setEvents(sampleEvents); // Fallback to sample data
       })
