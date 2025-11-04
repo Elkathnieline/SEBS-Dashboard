@@ -19,9 +19,16 @@ export default function ProcessedBookings({ bookings, fetcher, isDarkTheme }) {
     setSelectedStatus(status);
   };
 
-  const handleStatusUpdate = (bookingId, newStatus) => {
+  const handleStatusUpdate = (bookingId, statusCode) => {
+    // Show warning for canceling confirmed bookings
+    if (statusCode === 4 && bookings.find(b => b.id === bookingId)?.statusDisplay === 'Confirmed') {
+      if (!window.confirm('Warning: This booking is confirmed. Canceling it will move it to cancelled bookings. Are you sure?')) {
+        return;
+      }
+    }
+    
     fetcher.submit(
-      { bookingId, newStatus },
+      { bookingId: bookingId.toString(), status: statusCode.toString() },
       { method: 'post' }
     );
   };
@@ -149,7 +156,7 @@ export default function ProcessedBookings({ bookings, fetcher, isDarkTheme }) {
                     {booking.statusDisplay === 'Confirmed' && (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleStatusUpdate(booking.id, 'Canceled')}
+                          onClick={() => handleStatusUpdate(booking.id, 4)}
                           className="btn btn-error btn-xs"
                           title="Cancel booking"
                         >
