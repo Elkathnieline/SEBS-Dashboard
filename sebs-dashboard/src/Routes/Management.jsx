@@ -1,13 +1,69 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Settings, AlertCircle } from 'lucide-react';
 import { useTheme } from '../Contexts/ThemeContext.jsx';
 import BookingRequests from '../Components/Book/BookingRequests.jsx';
 import ProcessedBookings from '../Components/Book/ProcessedBookings.jsx';
+import { useLoaderData, useFetcher } from 'react-router-dom';
+import { bookingService } from '../Services/BookingService.js';
+import { enumMapper } from '../Utils/EnumMapper.js';
+import { transformBookingData } from '../Utils/BookingTransformer.js';
+
+// Loader: fetch all bookings and enums
+export async function loader() {
+  await enumMapper.loadEnums(bookingService);
+  const allBookings = await bookingService.fetchBookingRequests();
+  const transformed = transformBookingData(allBookings);
+  return { bookings: transformed };
+}
+
+// Action: update booking status
+export async function action({ request }) {
+  const formData = await request.formData();
+  const bookingId = formData.get('bookingId');
+  const newStatus = formData.get('newStatus');
+  let numericStatus = enumMapper.getStatusValue(newStatus) || 1;
+  if (newStatus === 'canceled' || newStatus === 'Cancelled') numericStatus = 4;
+  if (newStatus === 'Confirmed') numericStatus = 2;
+  if (newStatus === 'Pending') numericStatus = 1;
+  try {
+    await bookingService.updateBookingStatus(bookingId, numericStatus);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
 
 export default function Management() {
   const { isDarkTheme } = useTheme();
+  const { bookings } = useLoaderData();
+  const fetcher = useFetcher();
+  // Error and pending state can be handled via fetcher
   const [bookingError, setBookingError] = useState(null);
   const [declineError, setDeclineError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Force refresh when BookingRequests changes
+  const handleBookingRequestsChange = useCallback(() => {
+    console.log('Management: Received booking requests change event');
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    // Listen for custom events from BookingRequests
+    const handleBookingUpdate = () => handleBookingRequestsChange();
+    const handleBookingStatusChange = () => handleBookingRequestsChange();
+    const handleBookingRefresh = () => handleBookingRequestsChange();
+
+    window.addEventListener('bookingUpdated', handleBookingUpdate);
+    window.addEventListener('bookingStatusChanged', handleBookingStatusChange);
+    window.addEventListener('bookingRequestsRefreshed', handleBookingRefresh);
+
+    return () => {
+      window.removeEventListener('bookingUpdated', handleBookingUpdate);
+      window.removeEventListener('bookingStatusChanged', handleBookingStatusChange);
+      window.removeEventListener('bookingRequestsRefreshed', handleBookingRefresh);
+    };
+  }, [handleBookingRequestsChange]);
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-300 ${
@@ -50,7 +106,11 @@ export default function Management() {
               </button>
             </div>
           )}
-          <BookingRequests setError={setBookingError} />
+          <BookingRequests 
+            bookings={bookings.filter(b => b.status === "pending")}
+            fetcher={fetcher}
+            isDarkTheme={isDarkTheme}
+          />
         </div>
 
         {/* Declined Bookings Section */}
@@ -68,7 +128,11 @@ export default function Management() {
               </button>
             </div>
           )}
-          <ProcessedBookings setError={setDeclineError} />
+          <ProcessedBookings 
+            bookings={bookings.filter(b => b.status !== "pending")}
+            fetcher={fetcher}
+            isDarkTheme={isDarkTheme}
+          />
         </div>
       </div>
     </div>
