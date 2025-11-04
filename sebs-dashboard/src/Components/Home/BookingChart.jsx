@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Check, Clock, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../Contexts/ThemeContext.jsx';
+import analyticsService from '../../Services/AnalyticsService.js';
 import PropTypes from 'prop-types';
 
 export default function BookingChart({ height = 252 }) {
@@ -22,23 +23,9 @@ export default function BookingChart({ height = 252 }) {
   ]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_DEV_API_URL || "";
-    const token = sessionStorage.getItem('backend-token');
-
-    fetch(`${API_BASE}/api/Analytics/booking-chart?year=${selectedYear}`, {
-      method: 'GET',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      signal: controller.signal,
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load booking chart');
-        return res.json();
-      })
+    analyticsService.fetchBookingChartByYear(selectedYear)
       .then((data) => {
+        console.log('BookingChart - Data received:', data);
         // Map API { month, green, purple } -> component { month, accepted, pending }
         const mapped = Array.isArray(data)
           ? data.map((d) => ({
@@ -52,13 +39,8 @@ export default function BookingChart({ height = 252 }) {
         );
       })
       .catch((err) => {
-        if (err.name !== 'AbortError') {
-          // Optionally surface error (toast/log)
-          // console.error(err);
-        }
+        console.error('BookingChart - Error fetching data:', err);
       });
-
-    return () => controller.abort();
   }, [selectedYear]);
 
   const maxValue =

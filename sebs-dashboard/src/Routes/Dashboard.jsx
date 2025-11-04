@@ -4,35 +4,37 @@ import BookingChart from "../Components/Home/BookingChart";
 import Calendar from "../Components/Home/Calendar";
 import RightSidebar from "../Components/Home/RightSidebar";
 import { useTheme } from "../Contexts/ThemeContext.jsx";
+import analyticsService from "../Services/AnalyticsService.js";
 
 export default function Dashboard() {
   const [bookings, setBookings] = useState(0);
   const [visits, setVisits] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { isDarkTheme } = useTheme();
 
   useEffect(() => {
-    const token = sessionStorage.getItem("backend-token");
-    const apiUrl = import.meta.env.VITE_DEV_API_URL || "";
+    setLoading(true);
+    setError(null);
 
-    if (!token) return;
-
-    // Fetch both stats in parallel
+    // Fetch stats using AnalyticsService
     Promise.all([
-      fetch(`${apiUrl}/api/Analytics/total-bookings`, {
-        headers: { Authorization: `Bearer ${token}` },
+      analyticsService.fetchTotalBookings(),
+      analyticsService.fetchTotalSiteVisits()
+    ])
+      .then(([bookingsData, visitsData]) => {
+        console.log('Dashboard - Total Bookings:', bookingsData);
+        console.log('Dashboard - Total Visits:', visitsData);
+        setBookings(bookingsData);
+        setVisits(visitsData);
       })
-        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 0 })))
-        .then(data => setBookings(data.total ?? 0))
-        .catch(() => setBookings(0)),
-
-      fetch(`${apiUrl}/api/Analytics/total-site-visits`, {
-        headers: { Authorization: `Bearer ${token}` },
+      .catch((err) => {
+        console.error('Dashboard error:', err);
+        setError("Failed to load dashboard stats");
       })
-        .then(res => (res.ok ? res.json() : Promise.resolve({ total: 0 })))
-        .then(data => setVisits(data.total ?? 0))
-        .catch(() => setVisits(0)),
-    ]).catch(err => setError("Failed to load dashboard stats"));
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   return (
