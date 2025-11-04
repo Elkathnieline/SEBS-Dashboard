@@ -3,7 +3,7 @@ import { Settings, AlertCircle } from 'lucide-react';
 import { useTheme } from '../Contexts/ThemeContext.jsx';
 import BookingRequests from '../Components/Book/BookingRequests.jsx';
 import ProcessedBookings from '../Components/Book/ProcessedBookings.jsx';
-import { useLoaderData, useFetcher } from 'react-router-dom';
+import { useLoaderData, useFetcher, redirect } from 'react-router-dom';
 import { bookingService } from '../Services/BookingService.js';
 import { enumMapper } from '../Utils/EnumMapper.js';
 import { transformBookingData } from '../Utils/BookingTransformer.js';
@@ -19,16 +19,24 @@ export async function loader() {
 // Action: update booking status
 export async function action({ request }) {
   const formData = await request.formData();
-  const bookingId = formData.get('bookingId');
-  const newStatus = formData.get('newStatus');
-  let numericStatus = enumMapper.getStatusValue(newStatus) || 1;
-  if (newStatus === 'canceled' || newStatus === 'Cancelled') numericStatus = 4;
-  if (newStatus === 'Confirmed') numericStatus = 2;
-  if (newStatus === 'Pending') numericStatus = 1;
+  const bookingId = parseInt(formData.get('bookingId'), 10);
+  const statusValue = formData.get('status');
+  
+  // Convert to number if it's a string
+  const numericStatus = typeof statusValue === 'string' ? parseInt(statusValue, 10) : statusValue;
+  
+  console.log('Action received:', { bookingId, statusValue, numericStatus });
+  
+  if (!bookingId || !numericStatus) {
+    return { success: false, error: 'Invalid booking ID or status' };
+  }
+  
   try {
-    await bookingService.updateBookingStatus(bookingId, numericStatus);
-    return { success: true };
+    const result = await bookingService.updateBookingStatus(bookingId, numericStatus);
+    console.log('Status update successful:', result);
+    return { success: true, data: result };
   } catch (err) {
+    console.error('Action error:', err);
     return { success: false, error: err.message };
   }
 }
@@ -107,7 +115,7 @@ export default function Management() {
             </div>
           )}
           <BookingRequests 
-            bookings={bookings.filter(b => b.status === "pending")}
+            bookings={bookings.filter(b => b.status === "awaiting confirmation" || b.status === "pending")}
             fetcher={fetcher}
             isDarkTheme={isDarkTheme}
           />
@@ -129,7 +137,7 @@ export default function Management() {
             </div>
           )}
           <ProcessedBookings 
-            bookings={bookings.filter(b => b.status !== "pending")}
+            bookings={bookings.filter(b => b.status !== "awaiting confirmation" && b.status !== "pending")}
             fetcher={fetcher}
             isDarkTheme={isDarkTheme}
           />

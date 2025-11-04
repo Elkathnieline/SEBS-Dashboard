@@ -15,9 +15,9 @@ export default function BookingRequests({ bookings, fetcher, isDarkTheme }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleStatusUpdate = (bookingId, newStatus) => {
+  const handleStatusUpdate = (bookingId, statusCode) => {
     fetcher.submit(
-      { bookingId, newStatus },
+      { bookingId: bookingId.toString(), status: statusCode.toString() },
       { method: 'post' }
     );
     setIsModalOpen(false);
